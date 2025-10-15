@@ -1,0 +1,2479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>激光雷达树木检测系统</title>
+    <!-- 优化的字体加载 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&display=swap" rel="stylesheet"></noscript>
+    <style>
+        :root {
+            --color-lake: #4ecdc4;
+            --color-forest: #7fbf9e;
+            --color-sky: #3fa9c9;
+            --color-gold: #d4b66a;
+            --paper: #f5f1e6;
+            --paper-edge: #e3dccb;
+            --ink: #1e2b20;
+            --dark-bg: #0a1a0a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(140deg, #1a2f1a 0%, #0d1f0d 60%, #0a1a0a 100%);
+            height: 100vh;
+            width: 100vw;
+            color: #e9efe9;
+            background-attachment: fixed;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            /* 性能优化 */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            will-change: auto;
+        }
+
+        /* 字体加载完成后应用Cinzel字体 */
+        .fonts-loaded body {
+            font-family: 'Cinzel', 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        /* 全屏容器 */
+        .fullscreen-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 界面切换 */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            /* 性能优化 */
+            transform: translateZ(0);
+            backface-visibility: hidden;
+        }
+
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* 开始界面 */
+        .start-screen {
+            background: linear-gradient(135deg, rgba(26, 47, 26, 0.4) 0%, rgba(13, 31, 13, 0.5) 50%, rgba(10, 26, 10, 0.6) 100%), url('./images/公路森林.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            justify-content: center;
+            align-items: flex-start;
+            text-align: left;
+            padding: 0 40px;
+            overflow: hidden; /* 为粒子与视差层提供裁剪 */
+        }
+
+        /* 视差层：轻微移动的光斑纹理 */
+        .parallax-layer {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
+            pointer-events: none;
+            background: radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.08), transparent 40%),
+                        radial-gradient(circle at 80% 70%, rgba(255, 255, 255, 0.06), transparent 45%);
+            filter: blur(1px) saturate(1.05);
+            transition: transform 0.15s ease-out;
+        }
+
+        .start-content {
+            opacity: 1;
+            animation: fadeInUp 0.4s ease-out forwards;
+            background: none;
+            border: none;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0;
+            margin-top: -16px; /* 整体上移一格 */
+            max-width: 80vw;
+        }
+
+        .start-title {
+            font-size: 5rem;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+            font-family: 'Cinzel', 'Microsoft YaHei', Arial, sans-serif;
+            margin-bottom: 1rem;
+            animation: titleGlow 4s ease-in-out infinite;
+        }
+
+        .start-subtitle {
+            font-size: 2rem;
+            color: #fff;
+            margin-bottom: 3rem;
+            opacity: 1;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+            font-family: 'Cinzel', 'Microsoft YaHei', Arial, sans-serif;
+        }
+
+        /* 标题微弱发光脉冲 */
+        @keyframes titleGlow {
+            0%, 100% { text-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 0px rgba(212, 182, 106, 0.0); }
+            50% { text-shadow: 0 2px 8px rgba(0,0,0,0.6), 0 0 12px rgba(212, 182, 106, 0.35); }
+        }
+
+        .start-button {
+            background: #ffffff;
+            color: #000000;
+            border: none;
+            padding: 18px 88px;
+            font-size: 2.2rem;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: space-between;
+            text-align: left;
+            position: relative;
+            overflow: hidden; /* 裁剪ripple */
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .start-button .btn-text {
+            display: inline-block;
+        }
+
+        .start-button .arrow-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--color-gold);
+            color: #2a2100;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        /* 悬停上浮/阴影增强，按下回弹 */
+        .start-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+        }
+        .start-button:active {
+            transform: translateY(-1px) scale(0.99);
+            box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 点击涟漪元素样式 */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            transform: scale(0);
+            background: rgba(0, 0, 0, 0.15);
+            animation: ripple 600ms ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes ripple {
+            to { transform: scale(4); opacity: 0; }
+        }
+
+        /* 少量浮动粒子 */
+        .floating-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+        }
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.35);
+            border-radius: 50%;
+            filter: blur(0.5px);
+            animation: floatParticle linear infinite;
+        }
+        @keyframes floatParticle {
+            0% { transform: translate3d(0, 0, 0); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translate3d(300px, 220px, 0); opacity: 0; }
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 35px rgba(212, 182, 106, 0.4);
+        }
+
+        .start-button:active {
+            transform: translateY(0);
+        }
+
+        /* 加载界面 */
+        .loading-screen {
+            background: linear-gradient(135deg, rgba(26, 47, 26, 0.2) 0%, rgba(13, 31, 13, 0.3) 50%, rgba(10, 26, 10, 0.4) 100%), url('./images/迷雾森林.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* 加载界面模糊背景图 */
+        .loading-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('./images/迷雾森林.jpg') center / cover no-repeat;
+            filter: blur(8px) brightness(0.7) contrast(0.9) saturate(0.8);
+            transform: scale(1.05); /* 避免模糊边缘可见 */
+            opacity: 0.6;
+            z-index: 0;
+        }
+
+        .loading-content {
+            opacity: 1;
+            animation: fadeInUp 0.3s ease-out forwards;
+            position: relative;
+            z-index: 1;
+        }
+
+        .loading-logo {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            animation: pulse 2s ease-in-out infinite;
+            /* 调整为更淡的绿色观感 */
+            filter: brightness(1.35) saturate(1.2);
+            /* 位置下移一些 */
+            margin-top: 0.8rem;
+        }
+
+        .loading-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+
+        .loading-subtitle {
+            font-size: 1.3rem;
+            color: #ffffff;
+            margin-bottom: 1.2rem;
+            opacity: 0.95;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+        }
+
+        .loading-progress {
+            width: 300px;
+            height: 8px; /* 更细 */
+            background: rgba(255,255,255,0.15);
+            border-radius: 6px;
+            overflow: hidden;
+            margin: 0 auto 0.6rem;
+            position: relative;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: #A5D6A7; /* 淡绿色 */
+            border-radius: 6px;
+            width: 0%;
+            animation: loadingProgress 2s ease-out forwards; /* 与切换时长同步 */
+            position: relative;
+        }
+
+        /* 小树图标，随进度移动 */
+        .loading-tree {
+            position: absolute;
+            top: 62%; /* 往下移动一点 */
+            left: 0;
+            transform: translateY(-50%);
+            width: 32px; /* 更大 */
+            height: 32px;
+            line-height: 32px;
+            text-align: center;
+            font-size: 20px; /* 图标更大 */
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+            animation: loadingTree 2s ease-out forwards; /* 与切换时长同步 */
+            user-select: none;
+            pointer-events: none;
+        }
+        @keyframes loadingTree {
+            0% { left: 0; }
+            100% { left: calc(100% - 32px); }
+        }
+
+        /* Loding······ 文本动态效果 */
+        .loading-dots {
+            color: #ffffff;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-shadow: 0 1px 6px rgba(0,0,0,0.45);
+            font-family: 'Arial Rounded MT', 'Helvetica Rounded', 'Microsoft YaHei', Arial, sans-serif;
+        }
+        .loading-dots .text { font-size: 1.25rem; }
+        .loading-dots .dots::after {
+            content: '';
+            animation: dots 1.2s steps(6, end) infinite;
+            display: inline-block;
+            width: 6ch; /* 预留宽度避免抖动 */
+            text-align: left;
+        }
+        @keyframes dots {
+            0% { content: ''; }
+            16% { content: '·'; }
+            32% { content: '··'; }
+            48% { content: '···'; }
+            64% { content: '····'; }
+            80% { content: '·····'; }
+            100% { content: '······'; }
+        }
+
+        .loading-progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+
+        .loading-text {
+            font-size: 0.9rem;
+            color: #999;
+            margin-top: 1rem;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-top: 3px solid var(--color-gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 1rem auto;
+        }
+
+        @keyframes loadingProgress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 主菜单界面 */
+        .main-menu {
+            background: linear-gradient(135deg, rgba(26, 47, 26, 0.3) 0%, rgba(13, 31, 13, 0.4) 50%, rgba(10, 26, 10, 0.5) 100%), url('./images/迷雾森林.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            padding: 1rem;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .menu-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            padding-top: 1rem;
+        }
+
+        .menu-title {
+            font-size: 3rem;
+            color: #ffffff;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.6);
+            font-weight: 800;
+        }
+
+        .menu-subtitle {
+            font-size: 1.2rem;
+            color: var(--color-lake);
+            opacity: 0.9;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3), 0 0 15px rgba(78, 205, 196, 0.3);
+            background: linear-gradient(135deg, #4ecdc4, #7fbf9e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 500;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0;
+            width: 100vw;
+            margin: 0;
+            height: calc(100vh - 120px);
+            overflow: visible;
+            padding: 0;
+            align-items: center;
+            justify-items: center;
+        }
+
+        .menu-card {
+            position: relative;
+            background: transparent;
+            border-radius: 0;
+            padding: 0;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            border: none;
+            box-shadow: none;
+            color: #ffffff;
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: visible;
+        }
+
+        .menu-card::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
+            transform: scaleY(-1);
+            transform-origin: top;
+            opacity: 0.3;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .menu-card:hover {
+            transform: scale(1.08);
+            opacity: 1;
+        }
+
+        .menu-card:hover::after {
+            opacity: 0.5;
+            transform: scaleY(-1) scale(1.08);
+        }
+
+        .menu-card:hover .menu-card-content {
+            transform: translate(-50%, -50%) scale(1.02);
+        }
+
+        .menu-card:hover .menu-card-title {
+            text-shadow: 0 0 35px rgba(255, 255, 255, 0.7);
+            transform: scale(1.02);
+        }
+
+        .menu-card:hover .menu-card-desc {
+            text-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            opacity: 1;
+            transform: scale(1.01);
+        }
+
+        .menu-card-number {
+            position: absolute;
+            top: -10%;
+            left: 0;
+            width: 100%;
+            height: 50%;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-size: 8rem;
+            font-weight: 900;
+            color: rgba(255, 255, 255, 0.7);
+            font-family: 'Arial Black', 'Microsoft YaHei', Arial, sans-serif;
+            z-index: 1;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            background: transparent;
+            border-radius: 0;
+            backdrop-filter: none;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .menu-card:hover .menu-card-number {
+            color: rgba(255, 255, 255, 0.7);
+            text-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            transform: scale(1.03);
+        }
+
+        .menu-card-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            width: 80%;
+            height: 50%;
+            background: transparent;
+            border-radius: 20px;
+            padding: 2rem;
+            gap: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .menu-card-title {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin: 0;
+            color: #ffffff;
+            text-shadow: 0 0 25px rgba(255, 255, 255, 0.5);
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.2;
+            white-space: nowrap;
+            letter-spacing: 1px;
+        }
+
+        .menu-card-desc {
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: rgba(255, 255, 255, 0.7);
+            line-height: 1.4;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            margin: 0;
+            white-space: nowrap;
+            opacity: 1;
+            letter-spacing: 0.3px;
+        }
+
+        /* 子界面通用样式 */
+        .sub-screen {
+            background: linear-gradient(135deg, rgba(26, 47, 26, 0.3) 0%, rgba(13, 31, 13, 0.4) 50%, rgba(10, 26, 10, 0.5) 100%), url('./images/迷雾森林.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: #ffffff;
+        }
+
+        .sub-header {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .sub-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+
+        .back-button {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            padding: 10px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .back-button:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15));
+            transform: translateX(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* 全屏按钮 */
+        .fullscreen-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(0,0,0,0.7);
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+
+        .fullscreen-button:hover {
+            background: rgba(0,0,0,0.8);
+            border-color: rgba(255,255,255,0.5);
+            transform: scale(1.1);
+        }
+
+        .fullscreen-button:active {
+            transform: scale(0.95);
+        }
+
+        .fullscreen-button.fullscreen {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* 全屏提示 */
+        .fullscreen-hint {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        .fullscreen-hint.show {
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.6s ease, visibility 0.6s ease; /* 更柔和 */
+        }
+
+        .sub-content {
+            flex: 1;
+            padding: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 80px);
+        }
+
+        /* 二维测量界面 */
+        .measurement-2d {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .visualization-panel {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 1rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .control-panel {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 1rem;
+            overflow-y: auto;
+            height: 100%;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 100%;
+            height: 50vh; /* 改为左边栏框的二分之一高度 */
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+            background: #ffffff;
+            box-shadow: inset 0 0 30px rgba(255, 255, 255, 0.8), 
+                        0 4px 20px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #scanCanvas { 
+            width: 100%; 
+            height: 100%; 
+            cursor: crosshair;
+            border-radius: 6px;
+            background: rgba(255,255,255,0.1);
+        }
+
+        .canvas-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .view-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.12));
+            backdrop-filter: blur(15px);
+            color: #ffffff;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.18));
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:active {
+            transform: translateY(-1px) scale(1.01);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn-primary { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.15)); 
+            color: #ffffff; 
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        .btn-success { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.12)); 
+            color: #ffffff; 
+            border-color: rgba(255, 255, 255, 0.35);
+        }
+        .btn-warning { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1)); 
+            color: #ffffff; 
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .btn-danger { 
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08)); 
+            color: #ffffff; 
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .control-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .control-section h3 {
+            color: #ffffff;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            padding-bottom: 5px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+
+        .status-connected { background: rgba(255, 255, 255, 0.4); }
+        .status-disconnected { background: rgba(255, 255, 255, 0.2); }
+        .status-scanning { background: rgba(255, 255, 255, 0.3); animation: pulse 1.5s infinite; }
+        .status-measuring { background: rgba(255, 255, 255, 0.35); animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* 高度测量相关样式 */
+        .height-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            border-left: 3px solid rgba(255, 255, 255, 0.3);
+            margin: 5px 0;
+        }
+
+        .height-indicator.measuring {
+            background: rgba(255, 255, 255, 0.12);
+            animation: pulse 1s infinite;
+        }
+
+        .height-indicator.ready {
+            background: rgba(255, 255, 255, 0.1);
+            border-left-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .height-indicator.error {
+            background: rgba(255, 255, 255, 0.06);
+            border-left-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .height-progress {
+            background: rgba(255,255,255,0.5);
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .height-progress-bar {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.6));
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+
+        .height-progress-bar.warning {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.5));
+        }
+
+        .height-progress-bar.error {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.4));
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 8px;
+            margin: 10px 0;
+            flex-shrink: 0;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.08));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 18px;
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            text-align: center;
+            border-left: 4px solid rgba(255, 255, 255, 0.4);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .stat-card:hover::before {
+            opacity: 1;
+        }
+
+        .stat-value {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+        .stat-label {
+            font-size: 0.7em;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 2px;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 三维测量界面 */
+        .measurement-3d {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* 林场探测界面 */
+        .forest-detection {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        /* 系统介绍界面 */
+        .system-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .placeholder-content {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                        0 0 0 1px rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 1.8rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .placeholder-content::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 24px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .placeholder-content:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                        0 0 0 1px rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .placeholder-content:hover::before {
+            opacity: 1;
+        }
+
+        .placeholder-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .placeholder-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 0.8rem;
+            color: #ffffff;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.1);
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .placeholder-content:hover .placeholder-title {
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .placeholder-desc {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .placeholder-content:hover .placeholder-desc {
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        .info-card {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.08));
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2),
+                        0 0 0 1px rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 1.8rem;
+            overflow-y: auto;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+            border-radius: 24px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .info-card:hover {
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2), 
+                        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+                        0 0 0 1px rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .info-card:hover::before {
+            opacity: 1;
+        }
+
+        .info-card h3 {
+            color: #ffffff;
+            margin-bottom: 0.6rem;
+            font-size: 1.4rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 20px rgba(255, 255, 255, 0.1);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .info-card:hover h3 {
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .info-card p {
+            color: rgba(255, 255, 255, 0.9);
+            line-height: 1.5;
+            margin-bottom: 0.6rem;
+            font-size: 1.1rem;
+            text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .info-card:hover p {
+            color: rgba(255, 255, 255, 0.95);
+            text-shadow: 0 1px 6px rgba(0, 0, 0, 0.4);
+        }
+
+        /* 历史记录界面 */
+        .history-records {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .records-list {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border-radius: 20px;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .record-item {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            padding: 0.8rem;
+            margin-bottom: 0.8rem;
+            border-left: 3px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.4rem;
+        }
+
+        .record-date {
+            font-weight: 600;
+            color: #ffffff;
+            font-size: 0.9rem;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .record-type {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .record-details {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.8rem;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 优化的动画效果 */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 1200px) {
+            .menu-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.5rem;
+                height: calc(100vh - 200px);
+                padding: 2rem 1.5rem;
+            }
+            
+            .menu-card {
+                height: 220px;
+                min-height: 220px;
+            }
+            
+            .menu-card-number {
+                font-size: 5rem;
+            }
+            
+            .menu-card-content {
+                width: 85%;
+                height: 35%;
+                padding: 0.6rem 1rem;
+                gap: 0.8rem;
+            }
+            
+            .menu-card-title {
+                font-size: 1rem;
+            }
+            
+            .menu-card-desc {
+                font-size: 0.6rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .menu-grid {
+                grid-template-columns: repeat(2, 1fr);
+                height: calc(100vh - 180px);
+                gap: 1rem;
+                padding: 1.5rem 1rem;
+            }
+            
+            .menu-card {
+                height: 200px;
+                min-height: 200px;
+            }
+            
+            .menu-card-number {
+                font-size: 4rem;
+            }
+            
+            .menu-card-content {
+                width: 90%;
+                height: 40%;
+                padding: 0.5rem 0.8rem;
+                gap: 0.6rem;
+            }
+            
+            .menu-card-title {
+                font-size: 0.9rem;
+            }
+            
+            .menu-card-desc {
+                font-size: 0.55rem;
+            }
+            
+            .measurement-2d,
+            .measurement-3d,
+            .forest-detection,
+            .system-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .start-title {
+                font-size: 2.5rem;
+            }
+            
+            .loading-title {
+                font-size: 1.5rem;
+            }
+            
+            .loading-progress {
+                width: 250px;
+            }
+            
+            .sub-content {
+                padding: 0.8rem;
+            }
+            
+            .canvas-container {
+                height: 263px; /* 4:3 比例，基于350px宽度 */
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            }
+            
+            .fullscreen-button {
+                width: 45px;
+                height: 45px;
+                top: 15px;
+                right: 15px;
+                font-size: 18px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .menu-grid {
+                grid-template-columns: 1fr;
+                gap: 0.8rem;
+                height: calc(100vh - 150px);
+                padding: 1rem 0.5rem;
+            }
+            
+            .menu-card {
+                height: 180px;
+                min-height: 180px;
+            }
+            
+            .menu-card-number {
+                font-size: 3.5rem;
+            }
+            
+            .menu-card-content {
+                width: 95%;
+                height: 45%;
+                padding: 0.4rem 0.6rem;
+                gap: 0.5rem;
+            }
+            
+            .menu-card-title {
+                font-size: 0.8rem;
+            }
+            
+            .menu-card-desc {
+                font-size: 0.5rem;
+            }
+            
+            .start-title {
+                font-size: 2rem;
+            }
+            
+            .loading-title {
+                font-size: 1.3rem;
+            }
+            
+            .loading-progress {
+                width: 200px;
+            }
+            
+            .loading-logo {
+                font-size: 2.5rem;
+            }
+            
+            .menu-title {
+                font-size: 1.5rem;
+            }
+            
+            .canvas-container {
+                height: 225px; /* 4:3 比例，基于300px宽度 */
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+            }
+            
+            .fullscreen-button {
+                width: 40px;
+                height: 40px;
+                top: 10px;
+                right: 10px;
+                font-size: 16px;
+            }
+            
+            .fullscreen-hint {
+                font-size: 14px;
+                padding: 15px 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 全屏按钮 -->
+    <button class="fullscreen-button" id="fullscreenBtn" title="全屏显示">⛶</button>
+    
+    <!-- 全屏提示 -->
+    <div class="fullscreen-hint" id="fullscreenHint">
+        🔄 按 ESC 键退出全屏
+    </div>
+
+    <div class="fullscreen-container">
+        <!-- 开始界面 -->
+        <div class="screen start-screen active" id="startScreen">
+            <div class="parallax-layer" id="parallaxLayer"></div>
+            <div class="floating-particles" id="floatingParticles"></div>
+            <div class="start-content">
+                <h1 class="start-title">激光雷达树木检测系统</h1>
+                <p class="start-subtitle">HOKUYO URG-04LX-UG01 实时扫描与树木识别</p>
+                <button class="start-button" onclick="showLoadingScreen()">
+                    <span class="btn-text">开始使用</span>
+                    <span class="arrow-icon">➜</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 加载界面 -->
+        <div class="screen loading-screen" id="loadingScreen">
+            <div class="loading-content">
+                <div class="loading-logo">🌲</div>
+                <h2 class="loading-title">系统初始化中</h2>
+                <p class="loading-subtitle">正在加载激光雷达检测系统...</p>
+                <div class="loading-progress">
+                    <div class="loading-progress-bar"></div>
+                    <div class="loading-tree">🌲</div>
+                </div>
+                <div class="loading-dots"><span class="text">Loding</span><span class="dots"></span></div>
+            </div>
+        </div>
+
+        <!-- 主菜单界面 -->
+        <div class="screen main-menu" id="mainMenu">
+            <div class="menu-header">
+                <h1 class="menu-title">系统主菜单</h1>
+            </div>
+            <div class="menu-grid">
+                <div class="menu-card" onclick="showScreen('measurement2d')">
+                    <div class="menu-card-number">1</div>
+                    <div class="menu-card-content">
+                        <h3 class="menu-card-title">二维测量</h3>
+                        <p class="menu-card-desc">激光雷达平面扫描，树木检测与测量</p>
+                    </div>
+                </div>
+                <div class="menu-card" onclick="showScreen('measurement3d')">
+                    <div class="menu-card-number">2</div>
+                    <div class="menu-card-content">
+                        <h3 class="menu-card-title">三维测量</h3>
+                        <p class="menu-card-desc">立体扫描分析，三维建模与测量</p>
+                    </div>
+                </div>
+                <div class="menu-card" onclick="showScreen('forestDetection')">
+                    <div class="menu-card-number">3</div>
+                    <div class="menu-card-content">
+                        <h3 class="menu-card-title">林场探测</h3>
+                        <p class="menu-card-desc">大面积林场扫描，森林资源调查</p>
+                    </div>
+                </div>
+                <div class="menu-card" onclick="showScreen('systemInfo')">
+                    <div class="menu-card-number">4</div>
+                    <div class="menu-card-content">
+                        <h3 class="menu-card-title">系统介绍</h3>
+                        <p class="menu-card-desc">系统功能说明，使用指南</p>
+                    </div>
+                </div>
+                <div class="menu-card" onclick="showScreen('historyRecords')">
+                    <div class="menu-card-number">5</div>
+                    <div class="menu-card-content">
+                        <h3 class="menu-card-title">历史记录</h3>
+                        <p class="menu-card-desc">查看历史扫描数据和分析结果</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 二维测量界面 -->
+        <div class="screen sub-screen" id="measurement2d">
+            <div class="sub-header">
+                <h2 class="sub-title">📏 二维测量界面</h2>
+                <button class="back-button" onclick="showMainMenu()">返回主菜单</button>
+            </div>
+            <div class="sub-content">
+                <div class="measurement-2d">
+                    <div class="visualization-panel">
+                        <div class="canvas-header">
+                            <h3>🌐 激光雷达扫描视图</h3>
+                            <div class="view-controls">
+                                <button class="btn" id="resetViewBtn">重置视图</button>
+                                <button class="btn" id="toggleGridBtn">网格</button>
+                                <button class="btn" id="toggleLabelsBtn">标签</button>
+                                <button class="btn" id="rotateViewBtn">旋转90°</button>
+                                <button class="btn" id="testBtn">测试</button>
+                            </div>
+                        </div>
+                        <div class="canvas-container">
+                            <canvas id="scanCanvas"></canvas>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="treeCount">0</div>
+                                <div class="stat-label">检测树木</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="scanPoints">0</div>
+                                <div class="stat-label">扫描点数</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="avgDiameter">0</div>
+                                <div class="stat-label">平均直径</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="scanTime">0</div>
+                                <div class="stat-label">扫描时间</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="currentHeightDisplay">0</div>
+                                <div class="stat-label">当前高度(mm)</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="heightAccuracy">--</div>
+                                <div class="stat-label">高度精度</div>
+                            </div>
+                        </div>
+                        <div style="background: rgba(76, 175, 80, 0.1); padding: 10px; border-radius: 8px; margin-top: 10px; border-left: 4px solid #4caf50;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.9em; color: #2e7d32; font-weight: 600;">
+                                    📏 标准测量高度: 1.3m (1300mm)
+                                </span>
+                                <span id="heightIndicator" style="font-size: 0.8em; color: #666;">
+                                    等待测量...
+                                </span>
+                            </div>
+                            <div style="margin-top: 5px;">
+                                <div style="background: rgba(255,255,255,0.5); height: 6px; border-radius: 3px; overflow: hidden;">
+                                    <div id="heightProgressBar" style="background: linear-gradient(90deg, #4caf50, #8bc34a); height: 100%; width: 0%; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="control-panel">
+                        <div class="control-section">
+                            <h3>🔗 连接控制</h3>
+                            <div class="status-indicator">
+                                <div class="status-dot status-disconnected" id="statusDot"></div>
+                                <span id="statusText">未连接</span>
+                            </div>
+                            <button class="btn btn-primary" id="connectBtn">连接激光雷达</button>
+                            <button class="btn btn-danger" id="disconnectBtn" disabled>断开连接</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📡 扫描控制</h3>
+                            <button class="btn btn-success" id="startScanBtn" disabled>开始扫描</button>
+                            <button class="btn btn-warning" id="pauseScanBtn" disabled>暂停扫描</button>
+                            <button class="btn btn-primary" id="singleScanBtn" disabled>单次扫描</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>🌳 树木检测</h3>
+                            <button class="btn btn-success" id="detectTreesBtn" disabled>检测树木</button>
+                            <button class="btn btn-primary" id="clearTreesBtn">清除结果</button>
+                            <button class="btn btn-warning" id="debugBtn" disabled>调试数据</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📏 STP-23L高度测量</h3>
+                            <div class="status-indicator">
+                                <div class="status-dot status-disconnected" id="stp23lStatusDot"></div>
+                                <span id="stp23lStatusText">未连接</span>
+                            </div>
+                            <button class="btn btn-primary" id="stp23lConnectBtn">连接STP-23L</button>
+                            <button class="btn btn-danger" id="stp23lDisconnectBtn" disabled>断开连接</button>
+                            <button class="btn btn-success" id="stp23lStartBtn" disabled>开始测量</button>
+                            <button class="btn btn-warning" id="stp23lStopBtn" disabled>停止测量</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📊 高度数据</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="currentHeight">0</div>
+                                    <div class="stat-label">当前高度(mm)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="avgHeight">0</div>
+                                    <div class="stat-label">平均高度(mm)</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="heightCount">0</div>
+                                    <div class="stat-label">测量次数</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="heightStatus">--</div>
+                                    <div class="stat-label">测量状态</div>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <label style="font-size: 0.9em; color: #4a5568;">标准测量高度: 1.3m (1300mm)</label>
+                                <div style="background: rgba(76, 175, 80, 0.1); padding: 8px; border-radius: 6px; margin-top: 5px; border-left: 3px solid #4caf50;">
+                                    <span style="font-size: 0.8em; color: #2e7d32;">
+                                        <strong>标准树径测量：</strong>在距离地面1.3米高度处测量树木直径
+                                    </span>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" id="clearHeightBtn" style="margin-top: 10px;">清除高度数据</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📡 远程控制</h3>
+                            <div class="status-indicator">
+                                <div class="status-dot status-disconnected" id="remoteStatusDot"></div>
+                                <span id="remoteStatusText">未连接</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;">
+                                <button class="btn btn-primary" id="remoteConnectLidarBtn">远程连接激光雷达</button>
+                                <button class="btn btn-danger" id="remoteDisconnectLidarBtn">远程断开激光雷达</button>
+                                <button class="btn btn-success" id="remoteStartScanBtn">远程开始扫描</button>
+                                <button class="btn btn-warning" id="remoteStopScanBtn">远程停止扫描</button>
+                                <button class="btn btn-primary" id="remoteSingleScanBtn">远程单次扫描</button>
+                                <button class="btn btn-success" id="remoteDetectTreesBtn">远程检测树木</button>
+                                <button class="btn btn-primary" id="remoteConnectSTP23LBtn">远程连接STP-23L</button>
+                                <button class="btn btn-danger" id="remoteDisconnectSTP23LBtn">远程断开STP-23L</button>
+                                <button class="btn btn-success" id="remoteStartHeightBtn">远程开始高度测量</button>
+                                <button class="btn btn-warning" id="remoteStopHeightBtn">远程停止高度测量</button>
+                            </div>
+                            <button class="btn btn-primary" id="remoteGetStatusBtn" style="width: 100%; margin-top: 8px;">获取远程状态</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📊 系统日志</h3>
+                            <div class="log-area" id="logArea" style="height: 120px; background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)); backdrop-filter: blur(10px); color: #e0e0e0; padding: 10px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.2); overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
+                                <div class="log-entry log-info">[INFO] 系统已启动，等待连接...</div>
+                            </div>
+                            <button class="btn btn-primary" id="clearLogBtn" style="margin-top: 8px;">清除日志</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 三维测量界面 -->
+        <div class="screen sub-screen" id="measurement3d">
+            <div class="sub-header">
+                <h2 class="sub-title">📐 三维测量界面</h2>
+                <button class="back-button" onclick="showMainMenu()">返回主菜单</button>
+            </div>
+            <div class="sub-content">
+                <div class="measurement-3d">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">📐</div>
+                        <h3 class="placeholder-title">三维扫描功能</h3>
+                        <p class="placeholder-desc">此功能正在开发中，将提供立体扫描、三维建模和体积测量功能。</p>
+                    </div>
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">🎯</div>
+                        <h3 class="placeholder-title">三维分析</h3>
+                        <p class="placeholder-desc">支持三维点云处理、立体几何分析和空间测量。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 林场探测界面 -->
+        <div class="screen sub-screen" id="forestDetection">
+            <div class="sub-header">
+                <h2 class="sub-title">🌲 林场探测界面</h2>
+                <button class="back-button" onclick="showMainMenu()">返回主菜单</button>
+            </div>
+            <div class="sub-content">
+                <div class="forest-detection">
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">🌲</div>
+                        <h3 class="placeholder-title">大面积扫描</h3>
+                        <p class="placeholder-desc">支持大面积林场扫描，自动路径规划和区域覆盖。</p>
+                    </div>
+                    <div class="placeholder-content">
+                        <div class="placeholder-icon">📊</div>
+                        <h3 class="placeholder-title">森林资源分析</h3>
+                        <p class="placeholder-desc">提供森林密度分析、树种识别和资源统计功能。</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统介绍界面 -->
+        <div class="screen sub-screen" id="systemInfo">
+            <div class="sub-header">
+                <h2 class="sub-title">ℹ️ 系统介绍</h2>
+                <button class="back-button" onclick="showMainMenu()">返回主菜单</button>
+            </div>
+            <div class="sub-content">
+                <div class="system-info">
+                    <div class="info-card">
+                        <h3>系统概述</h3>
+                        <p>本系统基于HOKUYO URG-04LX-UG01激光雷达传感器，专门用于树木检测和测量。系统采用先进的点云处理算法，能够实时识别和测量树木的直径、位置等参数。</p>
+                        <p>支持多种测量模式，包括单点测量、连续扫描和大面积探测，满足不同应用场景的需求。</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>主要功能</h3>
+                        <p><strong>二维测量：</strong>平面扫描，树木检测与直径测量</p>
+                        <p><strong>三维测量：</strong>立体扫描，三维建模与体积测量</p>
+                        <p><strong>林场探测：</strong>大面积扫描，森林资源调查</p>
+                        <p><strong>数据管理：</strong>数据导入导出，历史记录查看</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>技术参数</h3>
+                        <p><strong>扫描范围：</strong>20mm - 5600mm</p>
+                        <p><strong>角度范围：</strong>240°</p>
+                        <p><strong>扫描频率：</strong>10Hz</p>
+                        <p><strong>精度：</strong>±30mm</p>
+                    </div>
+                    <div class="info-card">
+                        <h3>使用说明</h3>
+                        <p>1. 连接激光雷达设备</p>
+                        <p>2. 选择相应的测量模式</p>
+                        <p>3. 开始扫描并观察实时数据</p>
+                        <p>4. 分析结果并导出数据</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录界面 -->
+        <div class="screen sub-screen" id="historyRecords">
+            <div class="sub-header">
+                <h2 class="sub-title">📊 历史记录</h2>
+                <button class="back-button" onclick="showMainMenu()">返回主菜单</button>
+            </div>
+            <div class="sub-content">
+                <div class="history-records">
+                    <div class="records-list">
+                        <div class="record-item">
+                            <div class="record-header">
+                                <span class="record-date">2024-01-15 14:30</span>
+                                <span class="record-type">二维扫描</span>
+                            </div>
+                            <div class="record-details">
+                                检测到 12 棵树木，平均直径 156mm，扫描点数 1080
+                            </div>
+                        </div>
+                        <div class="record-item">
+                            <div class="record-header">
+                                <span class="record-date">2024-01-15 10:15</span>
+                                <span class="record-type">单点测量</span>
+                            </div>
+                            <div class="record-details">
+                                STP-23L传感器测量，高度 1250mm，测量次数 50
+                            </div>
+                        </div>
+                        <div class="record-item">
+                            <div class="record-header">
+                                <span class="record-date">2024-01-14 16:45</span>
+                                <span class="record-type">系统测试</span>
+                            </div>
+                            <div class="record-details">
+                                系统校准测试，扫描范围验证，数据质量检查
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="lidar-system.js"></script>
+    <script>
+        // 界面切换功能
+        function showScreen(screenId) {
+            // 隐藏所有界面
+            const screens = document.querySelectorAll('.screen');
+            screens.forEach(screen => {
+                screen.classList.remove('active');
+            });
+            
+            // 显示目标界面
+            const targetScreen = document.getElementById(screenId);
+            if (targetScreen) {
+                targetScreen.classList.add('active');
+            }
+        }
+
+        function showLoadingScreen() {
+            showScreen('loadingScreen');
+            startLoadingSequence();
+        }
+
+        function showMainMenu() {
+            showScreen('mainMenu');
+        }
+
+        // 加载序列
+        function startLoadingSequence() {
+            // 2秒后自动切换到主菜单
+            setTimeout(() => {
+                showMainMenu();
+            }, 2000);
+        }
+
+        // 全屏功能
+        let isFullscreen = false;
+
+        function toggleFullscreen() {
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            const fullscreenHint = document.getElementById('fullscreenHint');
+            
+            if (!isFullscreen) {
+                // 进入全屏
+                if (document.documentElement.requestFullscreen) {
+                    document.documentElement.requestFullscreen();
+                } else if (document.documentElement.webkitRequestFullscreen) {
+                    document.documentElement.webkitRequestFullscreen();
+                } else if (document.documentElement.msRequestFullscreen) {
+                    document.documentElement.msRequestFullscreen();
+                } else if (document.documentElement.mozRequestFullScreen) {
+                    document.documentElement.mozRequestFullScreen();
+                }
+            } else {
+                // 退出全屏
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                }
+            }
+        }
+
+        function updateFullscreenButton() {
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            if (isFullscreen) {
+                fullscreenBtn.textContent = '⛶';
+                fullscreenBtn.title = '退出全屏';
+                fullscreenBtn.classList.add('fullscreen');
+            } else {
+                fullscreenBtn.textContent = '⛶';
+                fullscreenBtn.title = '全屏显示';
+                fullscreenBtn.classList.remove('fullscreen');
+            }
+        }
+
+        function showFullscreenHint() {
+            const fullscreenHint = document.getElementById('fullscreenHint');
+            fullscreenHint.classList.add('show');
+            setTimeout(() => {
+                fullscreenHint.classList.remove('show');
+            }, 3000); // 延长显示时间到3秒
+        }
+
+        // 监听全屏状态变化
+        document.addEventListener('fullscreenchange', function() {
+            isFullscreen = !!document.fullscreenElement;
+            updateFullscreenButton();
+            if (isFullscreen) {
+                showFullscreenHint();
+            }
+        });
+
+        document.addEventListener('webkitfullscreenchange', function() {
+            isFullscreen = !!document.webkitFullscreenElement;
+            updateFullscreenButton();
+            if (isFullscreen) {
+                showFullscreenHint();
+            }
+        });
+
+        document.addEventListener('mozfullscreenchange', function() {
+            isFullscreen = !!document.mozFullScreenElement;
+            updateFullscreenButton();
+            if (isFullscreen) {
+                showFullscreenHint();
+            }
+        });
+
+        document.addEventListener('MSFullscreenChange', function() {
+            isFullscreen = !!document.msFullscreenElement;
+            updateFullscreenButton();
+            if (isFullscreen) {
+                showFullscreenHint();
+            }
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                if (isFullscreen) {
+                    // 如果当前是全屏状态，退出全屏
+                    toggleFullscreen();
+                } else {
+                    // 如果不是全屏，执行原来的返回菜单逻辑
+                    const currentScreen = document.querySelector('.screen.active');
+                    if (currentScreen && currentScreen.id !== 'startScreen' && currentScreen.id !== 'mainMenu') {
+                        showMainMenu();
+                    }
+                }
+            }
+        });
+
+        // 高度测量相关变量
+        let heightData = {
+            current: 0,
+            average: 0,
+            count: 0,
+            isMeasuring: false,
+            targetHeight: 1300, // 1.3米标准高度
+            measurements: []
+        };
+
+        // 高度测量功能
+        function updateHeightDisplay() {
+            document.getElementById('currentHeight').textContent = heightData.current;
+            document.getElementById('currentHeightDisplay').textContent = heightData.current;
+            document.getElementById('avgHeight').textContent = Math.round(heightData.average);
+            document.getElementById('heightCount').textContent = heightData.count;
+            
+            // 更新高度状态
+            const heightStatus = document.getElementById('heightStatus');
+            const heightIndicator = document.getElementById('heightIndicator');
+            const progressBar = document.getElementById('heightProgressBar');
+            
+            if (heightData.isMeasuring) {
+                heightStatus.textContent = '测量中';
+                heightIndicator.textContent = '正在测量...';
+                heightIndicator.style.color = '#4caf50';
+            } else if (heightData.count > 0) {
+                heightStatus.textContent = '已测量';
+                const accuracy = Math.abs(heightData.current - heightData.targetHeight);
+                document.getElementById('heightAccuracy').textContent = `±${accuracy}mm`;
+                
+                if (accuracy <= 50) {
+                    heightIndicator.textContent = '✓ 高度准确';
+                    heightIndicator.style.color = '#4caf50';
+                    progressBar.style.width = '100%';
+                    progressBar.className = 'height-progress-bar';
+                } else if (accuracy <= 100) {
+                    heightIndicator.textContent = '⚠ 高度接近';
+                    heightIndicator.style.color = '#ff9800';
+                    progressBar.style.width = '75%';
+                    progressBar.className = 'height-progress-bar warning';
+                } else {
+                    heightIndicator.textContent = '✗ 高度偏差';
+                    heightIndicator.style.color = '#f44336';
+                    progressBar.style.width = '25%';
+                    progressBar.className = 'height-progress-bar error';
+                }
+            } else {
+                heightStatus.textContent = '未测量';
+                heightIndicator.textContent = '等待测量...';
+                heightIndicator.style.color = '#666';
+                progressBar.style.width = '0%';
+                progressBar.className = 'height-progress-bar';
+            }
+        }
+
+        // STP-23L传感器控制
+        function initSTP23LControls() {
+            const connectBtn = document.getElementById('stp23lConnectBtn');
+            const disconnectBtn = document.getElementById('stp23lDisconnectBtn');
+            const startBtn = document.getElementById('stp23lStartBtn');
+            const stopBtn = document.getElementById('stp23lStopBtn');
+            const clearBtn = document.getElementById('clearHeightBtn');
+            const statusDot = document.getElementById('stp23lStatusDot');
+            const statusText = document.getElementById('stp23lStatusText');
+
+            connectBtn.addEventListener('click', function() {
+                // 模拟连接
+                statusDot.className = 'status-dot status-connected';
+                statusText.textContent = '已连接';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                startBtn.disabled = false;
+                
+                // 添加日志
+                addLog('STP-23L传感器已连接', 'success');
+            });
+
+            disconnectBtn.addEventListener('click', function() {
+                // 模拟断开
+                statusDot.className = 'status-dot status-disconnected';
+                statusText.textContent = '未连接';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                startBtn.disabled = true;
+                stopBtn.disabled = true;
+                
+                // 停止测量
+                heightData.isMeasuring = false;
+                updateHeightDisplay();
+                
+                addLog('STP-23L传感器已断开', 'warning');
+            });
+
+            startBtn.addEventListener('click', function() {
+                heightData.isMeasuring = true;
+                statusDot.className = 'status-dot status-measuring';
+                statusText.textContent = '测量中';
+                startBtn.disabled = true;
+                stopBtn.disabled = false;
+                
+                // 开始模拟测量
+                simulateHeightMeasurement();
+                
+                addLog('开始高度测量', 'info');
+            });
+
+            stopBtn.addEventListener('click', function() {
+                heightData.isMeasuring = false;
+                statusDot.className = 'status-dot status-connected';
+                statusText.textContent = '已连接';
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                
+                updateHeightDisplay();
+                
+                addLog('停止高度测量', 'warning');
+            });
+
+            clearBtn.addEventListener('click', function() {
+                heightData = {
+                    current: 0,
+                    average: 0,
+                    count: 0,
+                    isMeasuring: false,
+                    targetHeight: 1300,
+                    measurements: []
+                };
+                updateHeightDisplay();
+                
+                addLog('高度数据已清除', 'info');
+            });
+        }
+
+        // 清除日志功能
+        function initLogControls() {
+            const clearLogBtn = document.getElementById('clearLogBtn');
+            if (clearLogBtn) {
+                clearLogBtn.addEventListener('click', function() {
+                    const logArea = document.getElementById('logArea');
+                    if (logArea) {
+                        logArea.innerHTML = '<div class="log-entry log-info">[INFO] 日志已清除</div>';
+                    }
+                });
+            }
+        }
+        
+        // 远程控制功能
+        function initRemoteControls() {
+            const remoteStatusDot = document.getElementById('remoteStatusDot');
+            const remoteStatusText = document.getElementById('remoteStatusText');
+            
+            // 远程激光雷达控制
+            const remoteConnectLidarBtn = document.getElementById('remoteConnectLidarBtn');
+            const remoteDisconnectLidarBtn = document.getElementById('remoteDisconnectLidarBtn');
+            const remoteStartScanBtn = document.getElementById('remoteStartScanBtn');
+            const remoteStopScanBtn = document.getElementById('remoteStopScanBtn');
+            const remoteSingleScanBtn = document.getElementById('remoteSingleScanBtn');
+            const remoteDetectTreesBtn = document.getElementById('remoteDetectTreesBtn');
+            
+            // 远程STP-23L控制
+            const remoteConnectSTP23LBtn = document.getElementById('remoteConnectSTP23LBtn');
+            const remoteDisconnectSTP23LBtn = document.getElementById('remoteDisconnectSTP23LBtn');
+            const remoteStartHeightBtn = document.getElementById('remoteStartHeightBtn');
+            const remoteStopHeightBtn = document.getElementById('remoteStopHeightBtn');
+            
+            // 状态获取
+            const remoteGetStatusBtn = document.getElementById('remoteGetStatusBtn');
+            
+            // 激光雷达控制事件
+            remoteConnectLidarBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('connect_lidar');
+                }
+            });
+            
+            remoteDisconnectLidarBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('disconnect_lidar');
+                }
+            });
+            
+            remoteStartScanBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('start_scan');
+                }
+            });
+            
+            remoteStopScanBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('stop_scan');
+                }
+            });
+            
+            remoteSingleScanBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('single_scan');
+                }
+            });
+            
+            remoteDetectTreesBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('detect_trees');
+                }
+            });
+            
+            // STP-23L控制事件
+            remoteConnectSTP23LBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('connect_stp23l');
+                }
+            });
+            
+            remoteDisconnectSTP23LBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('disconnect_stp23l');
+                }
+            });
+            
+            remoteStartHeightBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('start_height_measure');
+                }
+            });
+            
+            remoteStopHeightBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('stop_height_measure');
+                }
+            });
+            
+            // 状态获取事件
+            remoteGetStatusBtn.addEventListener('click', function() {
+                if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    window.lidarSystem.sendRemoteControlCommand('get_status');
+                }
+            });
+            
+            // 更新远程连接状态
+            function updateRemoteStatus(connected) {
+                if (connected) {
+                    remoteStatusDot.className = 'status-dot status-connected';
+                    remoteStatusText.textContent = '已连接';
+                } else {
+                    remoteStatusDot.className = 'status-dot status-disconnected';
+                    remoteStatusText.textContent = '未连接';
+                }
+            }
+            
+            // 监听WebSocket连接状态
+            if (window.lidarSystem) {
+                const originalInitWebSocket = window.lidarSystem.initWebSocket;
+                window.lidarSystem.initWebSocket = function() {
+                    originalInitWebSocket.call(this);
+                    
+                    const originalOnOpen = this.ws.onopen;
+                    this.ws.onopen = () => {
+                        if (originalOnOpen) originalOnOpen.call(this);
+                        updateRemoteStatus(true);
+                    };
+                    
+                    const originalOnClose = this.ws.onclose;
+                    this.ws.onclose = () => {
+                        if (originalOnClose) originalOnClose.call(this);
+                        updateRemoteStatus(false);
+                    };
+                };
+            }
+        }
+
+        // 模拟高度测量
+        function simulateHeightMeasurement() {
+            if (!heightData.isMeasuring) return;
+            
+            // 模拟测量数据（在1200-1400mm之间）
+            const measurement = 1200 + Math.random() * 200;
+            heightData.current = Math.round(measurement);
+            heightData.measurements.push(measurement);
+            heightData.count++;
+            
+            // 计算平均值
+            heightData.average = heightData.measurements.reduce((a, b) => a + b, 0) / heightData.measurements.length;
+            
+            updateHeightDisplay();
+            
+            // 每秒测量一次
+            setTimeout(simulateHeightMeasurement, 1000);
+        }
+
+        // 添加日志功能
+        function addLog(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
+            if (!logArea) return;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        // 字体加载检测
+        function checkFontsLoaded() {
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(function() {
+                    document.documentElement.classList.add('fonts-loaded');
+                });
+            } else {
+                // 回退方案
+                setTimeout(function() {
+                    document.documentElement.classList.add('fonts-loaded');
+                }, 1000);
+            }
+        }
+
+        // 初始化Canvas 1:1比例
+        function initCanvas() {
+            const canvas = document.getElementById('scanCanvas');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            
+            // 根据屏幕尺寸设置canvas尺寸（4:3比例）
+            function setCanvasSize() {
+                const screenWidth = window.innerWidth;
+                let canvasWidth, canvasHeight;
+                
+                if (screenWidth <= 480) {
+                    canvasWidth = 300;
+                    canvasHeight = 225; // 4:3比例
+                } else if (screenWidth <= 768) {
+                    canvasWidth = 350;
+                    canvasHeight = 263; // 4:3比例
+                } else {
+                    canvasWidth = 400;
+                    canvasHeight = 300; // 4:3比例
+                }
+                
+                // 设置canvas的实际尺寸为4:3比例
+                canvas.width = canvasWidth;
+                canvas.height = canvasHeight;
+                
+                // 设置显示尺寸为100%
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+                
+                return { width: canvasWidth, height: canvasHeight };
+            }
+            
+            const canvasSize = setCanvasSize();
+            
+            // 设置坐标系统 - 4:3比例，中心为原点
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            
+            // 绘制坐标轴和网格
+            function drawGrid() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 设置样式
+                ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                ctx.lineWidth = 1;
+                
+                // 绘制网格线
+                const gridSize = 20; // 20像素一格
+                for (let x = 0; x <= canvas.width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                
+                for (let y = 0; y <= canvas.height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+                
+                // 绘制坐标轴
+                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+                ctx.lineWidth = 2;
+                
+                // X轴
+                ctx.beginPath();
+                ctx.moveTo(0, centerY);
+                ctx.lineTo(canvas.width, centerY);
+                ctx.stroke();
+                
+                // Y轴
+                ctx.beginPath();
+                ctx.moveTo(centerX, 0);
+                ctx.lineTo(centerX, canvas.height);
+                ctx.stroke();
+                
+                // 绘制中心点
+                ctx.fillStyle = 'rgba(255,0,0,0.5)';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, 3, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                // 绘制比例尺
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.font = '12px Arial';
+                ctx.fillText('4:3 比例', 10, 20);
+                ctx.fillText('中心: (0,0)', 10, 35);
+            }
+            
+            // 初始绘制网格
+            drawGrid();
+            
+            // 添加测试数据绘制功能
+            window.drawTestData = function() {
+                drawGrid();
+                
+                // 绘制一些测试点
+                ctx.fillStyle = 'rgba(0,172,193,0.8)';
+                const testPoints = [
+                    {x: centerX + 50, y: centerY - 30},
+                    {x: centerX - 40, y: centerY + 60},
+                    {x: centerX + 80, y: centerY + 20},
+                    {x: centerX - 60, y: centerY - 40}
+                ];
+                
+                testPoints.forEach(point => {
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
+                    ctx.fill();
+                });
+                
+                // 绘制测试树木
+                ctx.fillStyle = 'rgba(76,175,80,0.8)';
+                ctx.beginPath();
+                ctx.arc(centerX + 30, centerY - 50, 8, 0, 2 * Math.PI);
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.arc(centerX - 70, centerY + 30, 6, 0, 2 * Math.PI);
+                ctx.fill();
+            };
+            
+            // 监听窗口大小变化
+            window.addEventListener('resize', function() {
+                const newSize = setCanvasSize();
+                drawGrid();
+            });
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('激光雷达树木检测系统已启动');
+            
+            // 检查字体加载
+            checkFontsLoaded();
+            
+            // 初始化Canvas
+            initCanvas();
+            
+            // 初始化高度测量
+            updateHeightDisplay();
+            initSTP23LControls();
+            initLogControls();
+            initRemoteControls();
+            
+            // 初始化全屏按钮
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
+            if (fullscreenBtn) {
+                fullscreenBtn.addEventListener('click', toggleFullscreen);
+            }
+            
+            // 添加初始日志
+            addLog('系统已启动，等待连接...', 'info');
+
+            // 视差层 - 鼠标/设备倾斜响应
+            const parallax = document.getElementById('parallaxLayer');
+            const startScreen = document.getElementById('startScreen');
+            function handleParallax(xRatio, yRatio) {
+                if (!parallax) return;
+                const maxTranslate = 18; // 最大平移像素
+                const tx = (xRatio - 0.5) * maxTranslate;
+                const ty = (yRatio - 0.5) * maxTranslate;
+                parallax.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+            }
+            startScreen.addEventListener('mousemove', function(e) {
+                const rect = startScreen.getBoundingClientRect();
+                const xRatio = (e.clientX - rect.left) / rect.width;
+                const yRatio = (e.clientY - rect.top) / rect.height;
+                handleParallax(xRatio, yRatio);
+            });
+            if (window.DeviceOrientationEvent) {
+                window.addEventListener('deviceorientation', function(ev) {
+                    // 将设备倾斜角度映射到 0-1 范围
+                    const xRatio = Math.min(Math.max((ev.gamma + 45) / 90, 0), 1);
+                    const yRatio = Math.min(Math.max((ev.beta + 45) / 90, 0), 1);
+                    handleParallax(xRatio, yRatio);
+                });
+            }
+
+            // 浮动粒子生成
+            const particlesContainer = document.getElementById('floatingParticles');
+            if (particlesContainer) {
+                const PARTICLE_COUNT = 16;
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    const p = document.createElement('span');
+                    p.className = 'particle';
+                    const startX = Math.random() * window.innerWidth * 0.3; // 左侧 30%
+                    const startY = Math.random() * window.innerHeight * 0.4; // 上方 40%
+                    const delay = Math.random() * 6;
+                    const duration = 10 + Math.random() * 10; // 10-20s
+                    const scale = 0.7 + Math.random() * 0.8; // 0.7-1.5
+                    p.style.left = `${startX}px`;
+                    p.style.top = `${startY}px`;
+                    p.style.opacity = `${0.2 + Math.random() * 0.5}`;
+                    p.style.transform = `scale(${scale})`;
+                    p.style.animationDuration = `${duration}s`;
+                    p.style.animationDelay = `${delay}s`;
+                    particlesContainer.appendChild(p);
+                }
+            }
+
+            // 按钮点击涟漪
+            const startBtn = document.querySelector('.start-button');
+            if (startBtn) {
+                startBtn.addEventListener('click', function(e) {
+                    const rect = startBtn.getBoundingClientRect();
+                    const ripple = document.createElement('span');
+                    ripple.className = 'ripple';
+                    const size = Math.max(rect.width, rect.height);
+                    ripple.style.width = ripple.style.height = `${size}px`;
+                    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+                    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+                    startBtn.appendChild(ripple);
+                    setTimeout(() => ripple.remove(), 650);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
