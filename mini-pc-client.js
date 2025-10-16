@@ -899,7 +899,9 @@ class MiniPCClient {
 
 // 启动MiniPC客户端
 if (require.main === module) {
-    const client = new MiniPCClient();
+    // 从命令行参数获取服务器URL
+    const serverUrl = process.argv[2] || 'ws://localhost:8080/ws';
+    const client = new MiniPCClient(serverUrl);
     
     // 优雅关闭
     process.on('SIGINT', () => {
