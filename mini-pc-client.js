@@ -123,8 +123,7 @@ class MiniPCClient {
         try {
             console.log(`[${new Date().toISOString()}] 扫描可用设备...`);
             
-            // 获取可用串口列表
-            const { SerialPort } = require('serialport');
+            // 获取可用串口列表 - 修复新版本API
             const ports = await SerialPort.list();
             console.log(`[${new Date().toISOString()}] 发现 ${ports.length} 个串口设备:`);
             ports.forEach(port => {
@@ -293,15 +292,17 @@ class MiniPCClient {
                     break;
                     
                 case 'welcome':
-                    console.log(`[${new Date().toISOString()}] 服务器欢迎消息: ${message.message}`);
+                    console.log(`[${new Date().toISOString()}] 服务器欢迎消息: ${message.message || '连接成功'}`);
                     break;
                     
                 case 'client_list':
                     // 服务器发送的客户端列表，可以忽略
+                    console.log(`[${new Date().toISOString()}] 收到客户端列表更新`);
                     break;
                     
                 case 'status_update':
                     // 服务器发送的状态更新，可以忽略
+                    console.log(`[${new Date().toISOString()}] 收到服务器状态更新`);
                     break;
                     
                 default:
