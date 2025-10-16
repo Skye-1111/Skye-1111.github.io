@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 
 class MiniPCClient {
-    constructor(serverUrl = 'ws://localhost:8080/ws') {
+    constructor(serverUrl = 'ws://192.168.167.187:8080/ws') {
         this.serverUrl = serverUrl;
         this.ws = null;
         this.isConnected = false;
@@ -900,7 +900,7 @@ class MiniPCClient {
 // 启动MiniPC客户端
 if (require.main === module) {
     // 从命令行参数获取服务器URL
-    const serverUrl = process.argv[2] || 'ws://localhost:8080/ws';
+    const serverUrl = process.argv[2] || 'ws://192.168.167.187:8080/ws';
     const client = new MiniPCClient(serverUrl);
     
     // 优雅关闭

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-10-16T13:40:26.491Z",
+  "history": [],
+  "clients": [
+    "client_behx9m319"
+  ],
+  "deviceStatus": {
+    "minipcConnected": false,
+    "webClientConnected": false,
+    "lidarConnected": true,
+    "stp23lConnected": true,
+    "isScanning": false,
+    "isMeasuring": false
+  }
+}
