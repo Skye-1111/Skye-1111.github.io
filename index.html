@@ -1651,18 +1651,25 @@
                                 <span id="remoteStatusText">未连接</span>
                             </div>
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 10px 0;">
-                                <button class="btn btn-primary" id="remoteConnectLidarBtn">远程连接激光雷达</button>
-                                <button class="btn btn-danger" id="remoteDisconnectLidarBtn">远程断开激光雷达</button>
-                                <button class="btn btn-success" id="remoteStartScanBtn">远程开始扫描</button>
-                                <button class="btn btn-warning" id="remoteStopScanBtn">远程停止扫描</button>
-                                <button class="btn btn-primary" id="remoteSingleScanBtn">远程单次扫描</button>
-                                <button class="btn btn-success" id="remoteDetectTreesBtn">远程检测树木</button>
-                                <button class="btn btn-primary" id="remoteConnectSTP23LBtn">远程连接STP-23L</button>
-                                <button class="btn btn-danger" id="remoteDisconnectSTP23LBtn">远程断开STP-23L</button>
-                                <button class="btn btn-success" id="remoteStartHeightBtn">远程开始高度测量</button>
-                                <button class="btn btn-warning" id="remoteStopHeightBtn">远程停止高度测量</button>
+                                <button class="btn btn-primary" id="remoteConnectLidarBtn">连接激光雷达</button>
+                                <button class="btn btn-danger" id="remoteDisconnectLidarBtn">断开激光雷达</button>
+                                <button class="btn btn-success" id="remoteStartScanBtn">开始扫描</button>
+                                <button class="btn btn-warning" id="remoteStopScanBtn">停止扫描</button>
+                                <button class="btn btn-primary" id="remoteSingleScanBtn">单次扫描</button>
+                                <button class="btn btn-success" id="remoteDetectTreesBtn">检测树木</button>
+                                <button class="btn btn-primary" id="remoteConnectSTP23LBtn">连接STP-23L</button>
+                                <button class="btn btn-danger" id="remoteDisconnectSTP23LBtn">断开STP-23L</button>
+                                <button class="btn btn-success" id="remoteStartHeightBtn">开始高度测量</button>
+                                <button class="btn btn-warning" id="remoteStopHeightBtn">停止高度测量</button>
                             </div>
                             <button class="btn btn-primary" id="remoteGetStatusBtn" style="width: 100%; margin-top: 8px;">获取远程状态</button>
+                            <div style="margin-top: 10px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 6px; font-size: 0.8em;">
+                                <div style="color: #4caf50; margin-bottom: 4px;">🌐 远程控制说明：</div>
+                                <div style="color: rgba(255,255,255,0.8); line-height: 1.4;">
+                                    通过网页端控制miniPC上的激光雷达和传感器，实现远程数据采集和控制。
+                                    确保miniPC已连接到WebSocket服务器。
+                                </div>
+                            </div>
                         </div>
                         <div class="control-section">
                             <h3>📊 系统日志</h3>

@@ -1,0 +1,57 @@
+{
+  "server": {
+    "port": 8080,
+    "host": "0.0.0.0",
+    "path": "/ws",
+    "heartbeat_interval": 30000,
+    "max_reconnect_attempts": 5,
+    "reconnect_interval": 3000
+  },
+  "minipc": {
+    "server_url": "ws://localhost:8080/ws",
+    "auto_reconnect": true,
+    "reconnect_interval": 5000,
+    "device_scan_interval": 10000
+  },
+  "lidar": {
+    "baud_rate": 115200,
+    "data_bits": 8,
+    "stop_bits": 1,
+    "parity": "none",
+    "flow_control": "none",
+    "scan_interval": 100,
+    "max_range": 5500,
+    "min_range": 20
+  },
+  "stp23l": {
+    "baud_rate": 230400,
+    "data_bits": 8,
+    "stop_bits": 1,
+    "parity": "none",
+    "flow_control": "none",
+    "measurement_interval": 100,
+    "max_distance": 30000,
+    "min_distance": 20
+  },
+  "data": {
+    "max_history_size": 1000,
+    "save_interval": 300000,
+    "data_directory": "./data",
+    "backup_enabled": true
+  },
+  "log": {
+    "level": "info",
+    "enable_console": true,
+    "enable_file": true,
+    "log_file": "./logs/system.log",
+    "max_file_size": "10MB",
+    "max_files": 5
+  },
+  "security": {
+    "enable_cors": true,
+    "allowed_origins": ["https://xjy231101217.github.io"],
+    "enable_rate_limiting": true,
+    "max_requests_per_minute": 60,
+    "enable_command_validation": true
+  }
+}

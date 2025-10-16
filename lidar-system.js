@@ -3168,7 +3168,16 @@ class LidarSystem {
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
             const host = window.location.hostname;
             const port = window.location.port || '8080';
-            const wsUrl = `${protocol}//${host}:${port}/ws`;
+            
+            // 如果是GitHub Pages，连接到指定的服务器
+            let wsUrl;
+            if (host.includes('github.io')) {
+                // GitHub Pages环境，连接到指定的WebSocket服务器
+                wsUrl = 'ws://your-server-ip:8080/ws'; // 需要替换为实际的服务器IP
+            } else {
+                // 本地开发环境
+                wsUrl = `${protocol}//${host}:${port}/ws`;
+            }
             
             this.log(`正在连接WebSocket服务器: ${wsUrl}`, 'info');
             
