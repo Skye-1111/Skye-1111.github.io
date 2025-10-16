@@ -9,8 +9,8 @@
  */
 
 const WebSocket = require('ws');
-const SerialPort = require('serialport');
-const Readline = require('@serialport/parser-readline');
+const { SerialPort } = require('serialport');
+const { ReadlineParser } = require('@serialport/parser-readline');
 const fs = require('fs');
 const path = require('path');
 
@@ -121,6 +121,7 @@ class MiniPCClient {
             console.log(`[${new Date().toISOString()}] 扫描可用设备...`);
             
             // 获取可用串口列表
+            const { SerialPort } = require('serialport');
             const ports = await SerialPort.list();
             console.log(`[${new Date().toISOString()}] 发现 ${ports.length} 个串口设备:`);
             ports.forEach(port => {
@@ -173,7 +174,7 @@ class MiniPCClient {
         return new Promise((resolve, reject) => {
             try {
                 const lidarPort = new SerialPort(portPath, this.lidarConfig);
-                const lidarParser = lidarPort.pipe(new Readline({ delimiter: '\n' }));
+                const lidarParser = lidarPort.pipe(new ReadlineParser({ delimiter: '\n' }));
                 
                 lidarPort.on('open', () => {
                     console.log(`[${new Date().toISOString()}] 激光雷达已连接: ${portPath}`);
@@ -224,7 +225,7 @@ class MiniPCClient {
         return new Promise((resolve, reject) => {
             try {
                 const stp23lPort = new SerialPort(portPath, this.stp23lConfig);
-                const stp23lParser = stp23lPort.pipe(new Readline({ delimiter: '\n' }));
+                const stp23lParser = stp23lPort.pipe(new ReadlineParser({ delimiter: '\n' }));
                 
                 stp23lPort.on('open', () => {
                     console.log(`[${new Date().toISOString()}] STP-23L传感器已连接: ${portPath}`);
@@ -285,6 +286,18 @@ class MiniPCClient {
                         type: 'pong',
                         timestamp: new Date().toISOString()
                     }));
+                    break;
+                    
+                case 'welcome':
+                    console.log(`[${new Date().toISOString()}] 服务器欢迎消息: ${message.message}`);
+                    break;
+                    
+                case 'client_list':
+                    // 服务器发送的客户端列表，可以忽略
+                    break;
+                    
+                case 'status_update':
+                    // 服务器发送的状态更新，可以忽略
                     break;
                     
                 default:
