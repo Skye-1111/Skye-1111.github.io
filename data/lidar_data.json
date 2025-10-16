@@ -1,11 +1,12 @@
 {
-  "timestamp": "2025-10-16T13:40:26.491Z",
+  "timestamp": "2025-10-16T13:50:26.502Z",
   "history": [],
   "clients": [
-    "client_behx9m319"
+    "client_fgtr1t6tl",
+    "client_og5vu9onz"
   ],
   "deviceStatus": {
-    "minipcConnected": false,
+    "minipcConnected": true,
     "webClientConnected": false,
     "lidarConnected": true,
     "stp23lConnected": true,

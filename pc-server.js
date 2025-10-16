@@ -380,8 +380,17 @@ class PCServer {
         const webClient = Array.from(this.clients.values())
             .find(client => client.deviceType === 'web_client');
         
+        // 只更新连接状态，不更新设备状态
         this.deviceStatus.minipcConnected = !!minipcClient;
         this.deviceStatus.webClientConnected = !!webClient;
+        
+        // 如果没有MiniPC客户端，重置设备状态
+        if (!minipcClient) {
+            this.deviceStatus.lidarConnected = false;
+            this.deviceStatus.stp23lConnected = false;
+            this.deviceStatus.isScanning = false;
+            this.deviceStatus.isMeasuring = false;
+        }
         
         console.log(`[${new Date().toISOString()}] 设备状态更新:`, this.deviceStatus);
     }

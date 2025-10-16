@@ -64,8 +64,8 @@ class MiniPCClient {
         // 连接WebSocket服务器
         await this.connectWebSocket();
         
-        // 扫描并连接设备
-        await this.scanAndConnectDevices();
+        // 扫描可用设备（但不自动连接）
+        await this.scanAvailableDevices();
         
         console.log(`[${new Date().toISOString()}] MiniPC客户端初始化完成`);
     }
@@ -89,6 +89,9 @@ class MiniPCClient {
                     deviceId: this.deviceId,
                     status: this.deviceStatus
                 }));
+                
+                // 立即发送当前状态
+                this.sendStatusUpdate();
                 
                 resolve();
             });
@@ -114,9 +117,9 @@ class MiniPCClient {
     }
     
     /**
-     * 扫描并连接设备
+     * 扫描可用设备
      */
-    async scanAndConnectDevices() {
+    async scanAvailableDevices() {
         try {
             console.log(`[${new Date().toISOString()}] 扫描可用设备...`);
             
@@ -146,20 +149,21 @@ class MiniPCClient {
                 )
             );
             
-            // 连接激光雷达
+            // 保存可用设备信息，但不自动连接
             if (lidarPort) {
-                console.log(`[${new Date().toISOString()}] 找到激光雷达设备: ${lidarPort.path}`);
-                await this.connectLidar(lidarPort.path);
+                console.log(`[${new Date().toISOString()}] 发现激光雷达设备: ${lidarPort.path}`);
+                this.availableLidarPort = lidarPort.path;
             } else {
-                console.log(`[${new Date().toISOString()}] 未找到激光雷达设备`);
+                console.log(`[${new Date().toISOString()}] 未发现激光雷达设备`);
+                this.availableLidarPort = null;
             }
             
-            // 连接STP-23L传感器
             if (stp23lPort) {
-                console.log(`[${new Date().toISOString()}] 找到STP-23L传感器: ${stp23lPort.path}`);
-                await this.connectSTP23L(stp23lPort.path);
+                console.log(`[${new Date().toISOString()}] 发现STP-23L传感器: ${stp23lPort.path}`);
+                this.availableSTP23LPort = stp23lPort.path;
             } else {
-                console.log(`[${new Date().toISOString()}] 未找到STP-23L传感器`);
+                console.log(`[${new Date().toISOString()}] 未发现STP-23L传感器`);
+                this.availableSTP23LPort = null;
             }
             
         } catch (error) {
@@ -377,13 +381,21 @@ class MiniPCClient {
                 return;
             }
             
-            // 重新扫描并连接激光雷达
-            await this.scanAndConnectDevices();
+            // 重新扫描设备
+            await this.scanAvailableDevices();
             
-            if (this.deviceStatus.lidarConnected) {
-                this.sendControlResponse('connect_lidar', 'success');
+            if (this.availableLidarPort) {
+                console.log(`[${new Date().toISOString()}] 尝试连接激光雷达: ${this.availableLidarPort}`);
+                await this.connectLidar(this.availableLidarPort);
+                
+                if (this.deviceStatus.lidarConnected) {
+                    this.sendControlResponse('connect_lidar', 'success');
+                } else {
+                    this.sendControlResponse('connect_lidar', 'failed');
+                }
             } else {
-                this.sendControlResponse('connect_lidar', 'failed');
+                console.log(`[${new Date().toISOString()}] 未找到可用的激光雷达设备`);
+                this.sendControlResponse('connect_lidar', 'no_device_found');
             }
         } catch (error) {
             console.error(`[${new Date().toISOString()}] 连接激光雷达失败:`, error);
@@ -505,13 +517,21 @@ class MiniPCClient {
                 return;
             }
             
-            // 重新扫描并连接STP-23L
-            await this.scanAndConnectDevices();
+            // 重新扫描设备
+            await this.scanAvailableDevices();
             
-            if (this.deviceStatus.stp23lConnected) {
-                this.sendControlResponse('connect_stp23l', 'success');
+            if (this.availableSTP23LPort) {
+                console.log(`[${new Date().toISOString()}] 尝试连接STP-23L传感器: ${this.availableSTP23LPort}`);
+                await this.connectSTP23L(this.availableSTP23LPort);
+                
+                if (this.deviceStatus.stp23lConnected) {
+                    this.sendControlResponse('connect_stp23l', 'success');
+                } else {
+                    this.sendControlResponse('connect_stp23l', 'failed');
+                }
             } else {
-                this.sendControlResponse('connect_stp23l', 'failed');
+                console.log(`[${new Date().toISOString()}] 未找到可用的STP-23L传感器`);
+                this.sendControlResponse('connect_stp23l', 'no_device_found');
             }
         } catch (error) {
             console.error(`[${new Date().toISOString()}] 连接STP-23L失败:`, error);
