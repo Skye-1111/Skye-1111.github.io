@@ -525,10 +525,12 @@ class PCServer {
      * 启动服务器
      */
     start() {
-        this.server.listen(this.port, () => {
+        this.server.listen(this.port, '0.0.0.0', () => {
             console.log(`[${new Date().toISOString()}] 上位机WebSocket服务器已启动`);
             console.log(`[${new Date().toISOString()}] HTTP服务器: http://localhost:${this.port}`);
             console.log(`[${new Date().toISOString()}] WebSocket服务器: ws://localhost:${this.port}/ws`);
+            console.log(`[${new Date().toISOString()}] 网络访问: http://172.23.220.178:${this.port}`);
+            console.log(`[${new Date().toISOString()}] WebSocket网络访问: ws://172.23.220.178:${this.port}/ws`);
             console.log(`[${new Date().toISOString()}] 等待客户端连接...`);
         });
     }
