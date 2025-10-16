@@ -61,13 +61,18 @@ class MiniPCClient {
     async init() {
         console.log(`[${new Date().toISOString()}] MiniPC客户端初始化中...`);
         
-        // 连接WebSocket服务器
-        await this.connectWebSocket();
-        
-        // 扫描可用设备（但不自动连接）
-        await this.scanAvailableDevices();
-        
-        console.log(`[${new Date().toISOString()}] MiniPC客户端初始化完成`);
+        try {
+            // 连接WebSocket服务器
+            await this.connectWebSocket();
+            
+            // 扫描可用设备（但不自动连接）
+            await this.scanAvailableDevices();
+            
+            console.log(`[${new Date().toISOString()}] MiniPC客户端初始化完成`);
+        } catch (error) {
+            console.error(`[${new Date().toISOString()}] 初始化失败:`, error);
+            // 即使扫描失败，也保持连接
+        }
     }
     
     /**
@@ -167,6 +172,9 @@ class MiniPCClient {
             
         } catch (error) {
             console.error(`[${new Date().toISOString()}] 设备扫描失败:`, error);
+            // 设置默认值，避免undefined错误
+            this.availableLidarPort = null;
+            this.availableSTP23LPort = null;
         }
     }
     
