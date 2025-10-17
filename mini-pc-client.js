@@ -323,6 +323,16 @@ class MiniPCClient {
                     console.log(`[${new Date().toISOString()}] 收到服务器状态更新`);
                     break;
                     
+                case 'command_forwarded':
+                    // 指令已转发确认，可以忽略
+                    console.log(`[${new Date().toISOString()}] 收到指令转发确认`);
+                    break;
+                    
+                case 'control_response':
+                    // 控制响应消息，可以忽略
+                    console.log(`[${new Date().toISOString()}] 收到控制响应消息`);
+                    break;
+                    
                 default:
                     console.log(`[${new Date().toISOString()}] 收到未知消息类型: ${message.type}`);
             }

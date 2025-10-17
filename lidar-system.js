@@ -3281,6 +3281,10 @@ class LidarSystem {
                     this.handleCommandForwarded(data);
                     break;
                     
+                case 'control_response':
+                    this.handleControlResponse(data);
+                    break;
+                    
                 case 'bluetooth_response':
                     this.handleBluetoothResponse(data);
                     break;
@@ -3364,6 +3368,21 @@ class LidarSystem {
             this.log(`指令转发成功: ${data.data.command}`, 'success');
         } else {
             this.log(`指令转发失败: ${data.data.command} - ${data.data.error}`, 'error');
+        }
+    }
+    
+    /**
+     * 处理控制响应
+     */
+    handleControlResponse(data) {
+        if (data.data && data.data.command && data.data.status) {
+            if (data.data.status === 'success') {
+                this.log(`控制指令执行成功: ${data.data.command}`, 'success');
+            } else {
+                this.log(`控制指令执行失败: ${data.data.command} - ${data.data.status}`, 'error');
+            }
+        } else {
+            this.log(`收到控制响应: ${JSON.stringify(data.data)}`, 'info');
         }
     }
     
