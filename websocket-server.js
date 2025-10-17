@@ -295,9 +295,10 @@ class LidarWebSocketServer {
      */
     handleRemoteControl(clientId, data) {
         console.log(`[${new Date().toISOString()}] 收到远程控制指令: ${data.command} (来自: ${clientId})`);
+        console.log(`[${new Date().toISOString()}] 指令参数:`, data.parameters);
         
-        // 转发给蓝牙桥接器
-        this.forwardToBluetoothBridge(data);
+        // 转发给MiniPC客户端
+        this.forwardToMiniPC(data);
         
         // 广播给其他客户端
         const controlData = {
@@ -353,15 +354,15 @@ class LidarWebSocketServer {
      * 处理控制响应
      */
     handleControlResponse(clientId, data) {
-        console.log(`[${new Date().toISOString()}] 控制响应: ${data.command} - ${data.status}`);
+        console.log(`[${new Date().toISOString()}] 控制响应: ${data.data.command} - ${data.data.status}`);
         
         const responseData = {
             type: 'control_response',
             clientId: clientId,
             timestamp: new Date().toISOString(),
             data: {
-                command: data.command,
-                status: data.status
+                command: data.data.command,
+                status: data.data.status
             }
         };
         
@@ -459,6 +460,44 @@ class LidarWebSocketServer {
     }
     
     /**
+     * 转发给MiniPC客户端
+     */
+    forwardToMiniPC(data) {
+        // 查找MiniPC客户端
+        const minipcClient = Array.from(this.clients.values())
+            .find(client => client.deviceType === 'minipc');
+        
+        if (minipcClient && minipcClient.ws.readyState === WebSocket.OPEN) {
+            this.sendToClient(minipcClient.ws, {
+                type: 'remote_control',
+                command: data.command,
+                parameters: data.parameters,
+                timestamp: new Date().toISOString()
+            });
+            console.log(`[${new Date().toISOString()}] 指令已转发给MiniPC客户端`);
+            
+            // 广播指令转发状态
+            this.broadcast({
+                type: 'command_forwarded',
+                command: data.command,
+                status: 'success',
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            console.log(`[${new Date().toISOString()}] MiniPC客户端未连接，无法转发指令`);
+            
+            // 广播指令转发失败状态
+            this.broadcast({
+                type: 'command_forwarded',
+                command: data.command,
+                status: 'failed',
+                error: 'MiniPC客户端未连接',
+                timestamp: new Date().toISOString()
+            });
+        }
+    }
+    
+    /**
      * 添加到历史记录
      */
     addToHistory(data) {
@@ -476,6 +515,10 @@ class LidarWebSocketServer {
     broadcastToOthers(senderId, data) {
         this.clients.forEach((client, clientId) => {
             if (clientId !== senderId && client.ws.readyState === WebSocket.OPEN) {
+                // MiniPC客户端不接收远程控制的广播消息，因为它已经通过forwardToMiniPC直接接收了
+                if (data.type === 'remote_control' && client.deviceType === 'minipc') {
+                    return;
+                }
                 this.sendToClient(client.ws, data);
             }
         });

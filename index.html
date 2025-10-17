@@ -444,6 +444,39 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
             font-weight: 500;
+            margin-bottom: 2rem;
+        }
+
+        .menu-start-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #4ecdc4, #44a08d);
+            color: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+            border: none;
+            text-decoration: none;
+        }
+
+        .menu-start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.4);
+            background: linear-gradient(135deg, #5dd5cd, #4fb09a);
+        }
+
+        .menu-start-btn .arrow {
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .menu-start-btn:hover .arrow {
+            transform: translateX(3px);
         }
 
         .menu-grid {
@@ -1189,6 +1222,44 @@
             overflow: hidden;
         }
 
+        .records-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+        }
+
+        .filter-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .filter-select, .filter-date {
+            padding: 8px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 0.9rem;
+        }
+
+        .filter-select:focus, .filter-date:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            box-shadow: 0 0 0 2px rgba(78, 205, 196, 0.2);
+        }
+
+        .export-controls {
+            display: flex;
+            gap: 10px;
+        }
+
         .records-list {
             flex: 1;
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
@@ -1237,10 +1308,46 @@
         }
 
         .record-details {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.8rem;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
         }
+
+        .record-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .record-stats .stat {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .record-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+
+        .record-duration {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.8rem;
+        }
+
+        .type-2d { background: linear-gradient(135deg, #4ecdc4, #44a08d); }
+        .type-3d { background: linear-gradient(135deg, #667eea, #764ba2); }
+        .type-forest { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        .type-height { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+        .type-test { background: linear-gradient(135deg, #43e97b, #38f9d7); }
 
         /* 优化的动画效果 */
         @keyframes fadeInUp {
@@ -1476,7 +1583,12 @@
         <!-- 主菜单界面 -->
         <div class="screen main-menu" id="mainMenu">
             <div class="menu-header">
-                <h1 class="menu-title">系统主菜单</h1>
+                <h1 class="menu-title">激光雷达树木检测系统</h1>
+                <p class="menu-subtitle">HOKUYO URG-04LX-UG01 实时扫描与树木识别</p>
+                <div class="menu-start-btn" onclick="showScreen('measurement2d')">
+                    <span>开始使用</span>
+                    <span class="arrow">➜</span>
+                </div>
             </div>
             <div class="menu-grid">
                 <div class="menu-card" onclick="showScreen('measurement2d')">
@@ -1691,15 +1803,89 @@
             </div>
             <div class="sub-content">
                 <div class="measurement-3d">
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">📐</div>
-                        <h3 class="placeholder-title">三维扫描功能</h3>
-                        <p class="placeholder-desc">此功能正在开发中，将提供立体扫描、三维建模和体积测量功能。</p>
+                    <div class="visualization-panel">
+                        <div class="canvas-header">
+                            <h3>🌐 三维点云视图</h3>
+                            <div class="view-controls">
+                                <button class="btn" id="reset3DViewBtn">重置视图</button>
+                                <button class="btn" id="toggle3DGridBtn">网格</button>
+                                <button class="btn" id="toggle3DLabelsBtn">标签</button>
+                                <button class="btn" id="rotate3DViewBtn">旋转视图</button>
+                                <button class="btn" id="test3DBtn">测试</button>
+                            </div>
+                        </div>
+                        <div class="canvas-container">
+                            <canvas id="scan3DCanvas" style="background: radial-gradient(circle at center, #1a2f1a 0%, #0d1f0d 100%);"></canvas>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="pointCloudCount">0</div>
+                                <div class="stat-label">点云数量</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="volume3D">0</div>
+                                <div class="stat-label">体积(m³)</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="height3D">0</div>
+                                <div class="stat-label">高度(m)</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="scanTime3D">0</div>
+                                <div class="stat-label">扫描时间</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">🎯</div>
-                        <h3 class="placeholder-title">三维分析</h3>
-                        <p class="placeholder-desc">支持三维点云处理、立体几何分析和空间测量。</p>
+                    <div class="control-panel">
+                        <div class="control-section">
+                            <h3>🔗 连接控制</h3>
+                            <div class="status-indicator">
+                                <div class="status-dot status-disconnected" id="status3DDot"></div>
+                                <span id="status3DText">未连接</span>
+                            </div>
+                            <button class="btn btn-primary" id="connect3DBtn">连接三维传感器</button>
+                            <button class="btn btn-danger" id="disconnect3DBtn" disabled>断开连接</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📡 三维扫描控制</h3>
+                            <button class="btn btn-success" id="start3DScanBtn" disabled>开始三维扫描</button>
+                            <button class="btn btn-warning" id="pause3DScanBtn" disabled>暂停扫描</button>
+                            <button class="btn btn-primary" id="single3DScanBtn" disabled>单次扫描</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>🎯 三维分析</h3>
+                            <button class="btn btn-success" id="analyze3DBtn" disabled>分析点云</button>
+                            <button class="btn btn-primary" id="clear3DBtn">清除结果</button>
+                            <button class="btn btn-warning" id="export3DBtn" disabled>导出数据</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📊 三维数据</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="treeCount3D">0</div>
+                                    <div class="stat-label">检测树木</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="avgVolume3D">0</div>
+                                    <div class="stat-label">平均体积</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="scanCount3D">0</div>
+                                    <div class="stat-label">扫描次数</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="accuracy3D">--</div>
+                                    <div class="stat-label">测量精度</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="control-section">
+                            <h3>📊 系统日志</h3>
+                            <div class="log-area" id="log3DArea" style="height: 120px; background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)); backdrop-filter: blur(10px); color: #e0e0e0; padding: 10px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.2); overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
+                                <div class="log-entry log-info">[INFO] 三维测量系统已启动，等待连接...</div>
+                            </div>
+                            <button class="btn btn-primary" id="clear3DLogBtn" style="margin-top: 8px;">清除日志</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1713,15 +1899,91 @@
             </div>
             <div class="sub-content">
                 <div class="forest-detection">
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">🌲</div>
-                        <h3 class="placeholder-title">大面积扫描</h3>
-                        <p class="placeholder-desc">支持大面积林场扫描，自动路径规划和区域覆盖。</p>
+                    <div class="visualization-panel">
+                        <div class="canvas-header">
+                            <h3>🌐 林场扫描视图</h3>
+                            <div class="view-controls">
+                                <button class="btn" id="resetForestViewBtn">重置视图</button>
+                                <button class="btn" id="toggleForestGridBtn">网格</button>
+                                <button class="btn" id="toggleForestLabelsBtn">标签</button>
+                                <button class="btn" id="zoomForestViewBtn">缩放</button>
+                                <button class="btn" id="testForestBtn">测试</button>
+                            </div>
+                        </div>
+                        <div class="canvas-container">
+                            <canvas id="forestCanvas" style="background: radial-gradient(circle at center, #1a2f1a 0%, #0d1f0d 100%);"></canvas>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-value" id="forestArea">0</div>
+                                <div class="stat-label">扫描面积(m²)</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="treeDensity">0</div>
+                                <div class="stat-label">树木密度</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="forestCoverage">0</div>
+                                <div class="stat-label">森林覆盖率</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="scanProgress">0</div>
+                                <div class="stat-label">扫描进度</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="placeholder-content">
-                        <div class="placeholder-icon">📊</div>
-                        <h3 class="placeholder-title">森林资源分析</h3>
-                        <p class="placeholder-desc">提供森林密度分析、树种识别和资源统计功能。</p>
+                    <div class="control-panel">
+                        <div class="control-section">
+                            <h3>🔗 连接控制</h3>
+                            <div class="status-indicator">
+                                <div class="status-dot status-disconnected" id="forestStatusDot"></div>
+                                <span id="forestStatusText">未连接</span>
+                            </div>
+                            <button class="btn btn-primary" id="connectForestBtn">连接林场传感器</button>
+                            <button class="btn btn-danger" id="disconnectForestBtn" disabled>断开连接</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>🌲 大面积扫描</h3>
+                            <button class="btn btn-success" id="startForestScanBtn" disabled>开始林场扫描</button>
+                            <button class="btn btn-warning" id="pauseForestScanBtn" disabled>暂停扫描</button>
+                            <button class="btn btn-primary" id="singleForestScanBtn" disabled>单次扫描</button>
+                            <button class="btn btn-info" id="planPathBtn" disabled>路径规划</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📊 森林资源分析</h3>
+                            <button class="btn btn-success" id="analyzeForestBtn" disabled>分析森林资源</button>
+                            <button class="btn btn-primary" id="clearForestBtn">清除结果</button>
+                            <button class="btn btn-warning" id="exportForestBtn" disabled>导出数据</button>
+                            <button class="btn btn-info" id="speciesDetectionBtn" disabled>树种识别</button>
+                        </div>
+                        <div class="control-section">
+                            <h3>📊 林场数据</h3>
+                            <div class="stats-grid">
+                                <div class="stat-card">
+                                    <div class="stat-value" id="totalTrees">0</div>
+                                    <div class="stat-label">总树木数</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="avgDiameter">0</div>
+                                    <div class="stat-label">平均直径</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="scanCount">0</div>
+                                    <div class="stat-label">扫描次数</div>
+                                </div>
+                                <div class="stat-card">
+                                    <div class="stat-value" id="forestHealth">--</div>
+                                    <div class="stat-label">森林健康度</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="control-section">
+                            <h3>📊 系统日志</h3>
+                            <div class="log-area" id="logForestArea" style="height: 120px; background: linear-gradient(135deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.1)); backdrop-filter: blur(10px); color: #e0e0e0; padding: 10px; border-radius: 10px; font-family: 'Courier New', monospace; font-size: 11px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.2); overflow-y: auto; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);">
+                                <div class="log-entry log-info">[INFO] 林场探测系统已启动，等待连接...</div>
+                            </div>
+                            <button class="btn btn-primary" id="clearForestLogBtn" style="margin-top: 8px;">清除日志</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1773,32 +2035,113 @@
             </div>
             <div class="sub-content">
                 <div class="history-records">
+                    <div class="records-controls">
+                        <div class="filter-controls">
+                            <select id="typeFilter" class="filter-select">
+                                <option value="all">所有类型</option>
+                                <option value="2d">二维扫描</option>
+                                <option value="3d">三维扫描</option>
+                                <option value="forest">林场探测</option>
+                                <option value="height">高度测量</option>
+                                <option value="test">系统测试</option>
+                            </select>
+                            <input type="date" id="dateFilter" class="filter-date" placeholder="选择日期">
+                            <button class="btn btn-primary" id="refreshRecordsBtn">刷新记录</button>
+                        </div>
+                        <div class="export-controls">
+                            <button class="btn btn-success" id="exportAllBtn">导出全部</button>
+                            <button class="btn btn-warning" id="clearAllBtn">清除全部</button>
+                        </div>
+                    </div>
                     <div class="records-list">
-                        <div class="record-item">
+                        <div class="record-item" data-type="2d" data-date="2024-01-15">
                             <div class="record-header">
                                 <span class="record-date">2024-01-15 14:30</span>
-                                <span class="record-type">二维扫描</span>
+                                <span class="record-type type-2d">二维扫描</span>
+                                <span class="record-duration">扫描时长: 2分30秒</span>
                             </div>
                             <div class="record-details">
-                                检测到 12 棵树木，平均直径 156mm，扫描点数 1080
+                                <div class="record-stats">
+                                    <span class="stat">检测到 <strong>12</strong> 棵树木</span>
+                                    <span class="stat">平均直径 <strong>156mm</strong></span>
+                                    <span class="stat">扫描点数 <strong>1080</strong></span>
+                                </div>
+                                <div class="record-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="viewRecord('2d-001')">查看详情</button>
+                                    <button class="btn btn-sm btn-success" onclick="exportRecord('2d-001')">导出数据</button>
+                                </div>
                             </div>
                         </div>
-                        <div class="record-item">
+                        <div class="record-item" data-type="height" data-date="2024-01-15">
                             <div class="record-header">
                                 <span class="record-date">2024-01-15 10:15</span>
-                                <span class="record-type">单点测量</span>
+                                <span class="record-type type-height">单点测量</span>
+                                <span class="record-duration">测量时长: 5分钟</span>
                             </div>
                             <div class="record-details">
-                                STP-23L传感器测量，高度 1250mm，测量次数 50
+                                <div class="record-stats">
+                                    <span class="stat">STP-23L传感器测量</span>
+                                    <span class="stat">高度 <strong>1250mm</strong></span>
+                                    <span class="stat">测量次数 <strong>50</strong></span>
+                                </div>
+                                <div class="record-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="viewRecord('height-001')">查看详情</button>
+                                    <button class="btn btn-sm btn-success" onclick="exportRecord('height-001')">导出数据</button>
+                                </div>
                             </div>
                         </div>
-                        <div class="record-item">
+                        <div class="record-item" data-type="test" data-date="2024-01-14">
                             <div class="record-header">
                                 <span class="record-date">2024-01-14 16:45</span>
-                                <span class="record-type">系统测试</span>
+                                <span class="record-type type-test">系统测试</span>
+                                <span class="record-duration">测试时长: 10分钟</span>
                             </div>
                             <div class="record-details">
-                                系统校准测试，扫描范围验证，数据质量检查
+                                <div class="record-stats">
+                                    <span class="stat">系统校准测试</span>
+                                    <span class="stat">扫描范围验证</span>
+                                    <span class="stat">数据质量检查</span>
+                                </div>
+                                <div class="record-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="viewRecord('test-001')">查看详情</button>
+                                    <button class="btn btn-sm btn-success" onclick="exportRecord('test-001')">导出数据</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="record-item" data-type="3d" data-date="2024-01-13">
+                            <div class="record-header">
+                                <span class="record-date">2024-01-13 09:20</span>
+                                <span class="record-type type-3d">三维扫描</span>
+                                <span class="record-duration">扫描时长: 8分15秒</span>
+                            </div>
+                            <div class="record-details">
+                                <div class="record-stats">
+                                    <span class="stat">点云数量 <strong>15,420</strong></span>
+                                    <span class="stat">体积 <strong>2.3m³</strong></span>
+                                    <span class="stat">高度 <strong>3.2m</strong></span>
+                                </div>
+                                <div class="record-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="viewRecord('3d-001')">查看详情</button>
+                                    <button class="btn btn-sm btn-success" onclick="exportRecord('3d-001')">导出数据</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="record-item" data-type="forest" data-date="2024-01-12">
+                            <div class="record-header">
+                                <span class="record-date">2024-01-12 14:00</span>
+                                <span class="record-type type-forest">林场探测</span>
+                                <span class="record-duration">扫描时长: 25分钟</span>
+                            </div>
+                            <div class="record-details">
+                                <div class="record-stats">
+                                    <span class="stat">扫描面积 <strong>500m²</strong></span>
+                                    <span class="stat">总树木数 <strong>45</strong></span>
+                                    <span class="stat">森林覆盖率 <strong>78%</strong></span>
+                                </div>
+                                <div class="record-actions">
+                                    <button class="btn btn-sm btn-primary" onclick="viewRecord('forest-001')">查看详情</button>
+                                    <button class="btn btn-sm btn-success" onclick="exportRecord('forest-001')">导出数据</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -2114,8 +2457,15 @@
             
             // 激光雷达控制事件
             remoteConnectLidarBtn.addEventListener('click', function() {
+                console.log('点击连接激光雷达按钮');
+                console.log('window.lidarSystem:', window.lidarSystem);
+                console.log('sendRemoteControlCommand方法:', typeof window.lidarSystem?.sendRemoteControlCommand);
+                
                 if (window.lidarSystem && typeof window.lidarSystem.sendRemoteControlCommand === 'function') {
+                    console.log('发送远程控制指令: connect_lidar');
                     window.lidarSystem.sendRemoteControlCommand('connect_lidar');
+                } else {
+                    console.error('无法发送远程控制指令 - LidarSystem未初始化或方法不存在');
                 }
             });
             
@@ -2417,6 +2767,16 @@
             
             // 添加初始日志
             addLog('系统已启动，等待连接...', 'info');
+            
+            // 初始化激光雷达系统（用于WebSocket连接）
+            if (typeof LidarSystem !== 'undefined') {
+                window.lidarSystem = new LidarSystem();
+                addLog('激光雷达系统已初始化', 'info');
+                console.log('LidarSystem类已加载，sendRemoteControlCommand方法:', typeof window.lidarSystem.sendRemoteControlCommand);
+            } else {
+                addLog('警告: LidarSystem类未找到，远程控制功能可能不可用', 'warning');
+                console.error('LidarSystem类未定义');
+            }
 
             // 视差层 - 鼠标/设备倾斜响应
             const parallax = document.getElementById('parallaxLayer');
@@ -2480,6 +2840,92 @@
                     setTimeout(() => ripple.remove(), 650);
                 });
             }
+        });
+
+        // 历史记录功能
+        function viewRecord(recordId) {
+            console.log('查看记录详情:', recordId);
+            addLog(`查看记录详情: ${recordId}`, 'info');
+        }
+
+        function exportRecord(recordId) {
+            console.log('导出记录数据:', recordId);
+            addLog(`导出记录数据: ${recordId}`, 'success');
+        }
+
+        // 历史记录过滤功能
+        function initHistoryFilters() {
+            const typeFilter = document.getElementById('typeFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            const refreshBtn = document.getElementById('refreshRecordsBtn');
+            const exportAllBtn = document.getElementById('exportAllBtn');
+            const clearAllBtn = document.getElementById('clearAllBtn');
+
+            if (typeFilter) {
+                typeFilter.addEventListener('change', filterRecords);
+            }
+            if (dateFilter) {
+                dateFilter.addEventListener('change', filterRecords);
+            }
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', refreshRecords);
+            }
+            if (exportAllBtn) {
+                exportAllBtn.addEventListener('click', exportAllRecords);
+            }
+            if (clearAllBtn) {
+                clearAllBtn.addEventListener('click', clearAllRecords);
+            }
+        }
+
+        function filterRecords() {
+            const typeFilter = document.getElementById('typeFilter');
+            const dateFilter = document.getElementById('dateFilter');
+            const recordItems = document.querySelectorAll('.record-item');
+
+            recordItems.forEach(item => {
+                const itemType = item.getAttribute('data-type');
+                const itemDate = item.getAttribute('data-date');
+                const selectedType = typeFilter.value;
+                const selectedDate = dateFilter.value;
+
+                let showItem = true;
+
+                if (selectedType !== 'all' && itemType !== selectedType) {
+                    showItem = false;
+                }
+
+                if (selectedDate && itemDate !== selectedDate) {
+                    showItem = false;
+                }
+
+                item.style.display = showItem ? 'block' : 'none';
+            });
+        }
+
+        function refreshRecords() {
+            console.log('刷新历史记录');
+            addLog('刷新历史记录', 'info');
+            // 这里可以添加从服务器获取最新记录的逻辑
+        }
+
+        function exportAllRecords() {
+            console.log('导出全部记录');
+            addLog('导出全部记录', 'success');
+            // 这里可以添加导出所有记录的逻辑
+        }
+
+        function clearAllRecords() {
+            if (confirm('确定要清除所有历史记录吗？此操作不可恢复！')) {
+                console.log('清除全部记录');
+                addLog('清除全部记录', 'warning');
+                // 这里可以添加清除所有记录的逻辑
+            }
+        }
+
+        // 初始化历史记录过滤器
+        document.addEventListener('DOMContentLoaded', function() {
+            initHistoryFilters();
         });
     </script>
 </body>

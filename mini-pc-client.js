@@ -184,6 +184,11 @@ class MiniPCClient {
     async connectLidar(portPath) {
         return new Promise((resolve, reject) => {
             try {
+                // 验证端口路径
+                if (!portPath || typeof portPath !== 'string' || portPath.trim() === '') {
+                    throw new Error('无效的端口路径');
+                }
+                
                 const lidarPort = new SerialPort(portPath, this.lidarConfig);
                 const lidarParser = lidarPort.pipe(new ReadlineParser({ delimiter: '\n' }));
                 
@@ -235,6 +240,11 @@ class MiniPCClient {
     async connectSTP23L(portPath) {
         return new Promise((resolve, reject) => {
             try {
+                // 验证端口路径
+                if (!portPath || typeof portPath !== 'string' || portPath.trim() === '') {
+                    throw new Error('无效的端口路径');
+                }
+                
                 const stp23lPort = new SerialPort(portPath, this.stp23lConfig);
                 const stp23lParser = stp23lPort.pipe(new ReadlineParser({ delimiter: '\n' }));
                 
@@ -325,9 +335,23 @@ class MiniPCClient {
      * 处理远程控制指令
      */
     handleRemoteControl(message) {
-        const { command, parameters } = message;
+        // 处理两种消息格式：
+        // 1. 直接转发格式: { type: 'remote_control', command: 'xxx', parameters: xxx }
+        // 2. 广播格式: { type: 'remote_control', data: { command: 'xxx', parameters: xxx } }
+        let command, parameters;
+        
+        if (message.data && message.data.command) {
+            // 广播格式
+            command = message.data.command;
+            parameters = message.data.parameters;
+        } else {
+            // 直接转发格式
+            command = message.command;
+            parameters = message.parameters;
+        }
         
         console.log(`[${new Date().toISOString()}] 收到远程控制指令: ${command}`);
+        console.log(`[${new Date().toISOString()}] 指令参数:`, parameters);
         
         switch (command) {
             case 'connect_lidar':
@@ -393,7 +417,7 @@ class MiniPCClient {
             // 重新扫描设备
             await this.scanAvailableDevices();
             
-            if (this.availableLidarPort) {
+            if (this.availableLidarPort && this.availableLidarPort.trim() !== '') {
                 console.log(`[${new Date().toISOString()}] 尝试连接激光雷达: ${this.availableLidarPort}`);
                 await this.connectLidar(this.availableLidarPort);
                 
@@ -529,7 +553,7 @@ class MiniPCClient {
             // 重新扫描设备
             await this.scanAvailableDevices();
             
-            if (this.availableSTP23LPort) {
+            if (this.availableSTP23LPort && this.availableSTP23LPort.trim() !== '') {
                 console.log(`[${new Date().toISOString()}] 尝试连接STP-23L传感器: ${this.availableSTP23LPort}`);
                 await this.connectSTP23L(this.availableSTP23LPort);
                 

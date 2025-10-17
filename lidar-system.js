@@ -3169,11 +3169,11 @@ class LidarSystem {
             const host = window.location.hostname;
             const port = window.location.port || '8080';
             
-            // 如果是GitHub Pages，连接到指定的服务器
+            // 连接到指定的WebSocket服务器
             let wsUrl;
-            if (host.includes('github.io')) {
-                // GitHub Pages环境，连接到指定的WebSocket服务器
-                wsUrl = 'ws://your-server-ip:8080/ws'; // 需要替换为实际的服务器IP
+            if (host.includes('github.io') || host === 'localhost' || host === '127.0.0.1') {
+                // 连接到指定的WebSocket服务器
+                wsUrl = 'ws://192.168.167.187:8080/ws';
             } else {
                 // 本地开发环境
                 wsUrl = `${protocol}//${host}:${port}/ws`;
