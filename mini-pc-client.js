@@ -135,23 +135,70 @@ class MiniPCClient {
                 console.log(`  - ${port.path}: ${port.manufacturer || 'Unknown'} ${port.productId || ''}`);
             });
             
-            // 查找激光雷达设备
-            const lidarPort = ports.find(port => 
-                port.manufacturer && (
-                    port.manufacturer.toLowerCase().includes('hokuyo') ||
-                    port.manufacturer.toLowerCase().includes('urg') ||
-                    port.manufacturer.toLowerCase().includes('lidar')
-                )
-            );
+            // 查找激光雷达设备 - 扩展搜索条件
+            const lidarPort = ports.find(port => {
+                const manufacturer = (port.manufacturer || '').toLowerCase();
+                const productId = (port.productId || '').toLowerCase();
+                const serialNumber = (port.serialNumber || '').toLowerCase();
+                const path = port.path.toLowerCase();
+                
+                return (
+                    // 制造商匹配
+                    manufacturer.includes('hokuyo') ||
+                    manufacturer.includes('urg') ||
+                    manufacturer.includes('lidar') ||
+                    manufacturer.includes('rplidar') ||
+                    manufacturer.includes('ydlidar') ||
+                    manufacturer.includes('slamtec') ||
+                    manufacturer.includes('velodyne') ||
+                    manufacturer.includes('ouster') ||
+                    manufacturer.includes('livox') ||
+                    // 产品ID匹配
+                    productId.includes('lidar') ||
+                    productId.includes('laser') ||
+                    productId.includes('rplidar') ||
+                    productId.includes('ydlidar') ||
+                    productId.includes('slamtec') ||
+                    // 序列号匹配
+                    serialNumber.includes('lidar') ||
+                    serialNumber.includes('laser') ||
+                    // 路径匹配（Linux设备）
+                    path.includes('ttyacm') ||
+                    path.includes('ttyusb') ||
+                    // 通用串口设备（如果没有制造商信息）
+                    (!manufacturer && !productId && !serialNumber && path.includes('tty'))
+                );
+            });
             
-            // 查找STP-23L传感器
-            const stp23lPort = ports.find(port => 
-                port.manufacturer && (
-                    port.manufacturer.toLowerCase().includes('stp') ||
-                    port.manufacturer.toLowerCase().includes('23l') ||
-                    port.manufacturer.toLowerCase().includes('height')
-                )
-            );
+            // 查找STP-23L传感器 - 扩展搜索条件
+            const stp23lPort = ports.find(port => {
+                const manufacturer = (port.manufacturer || '').toLowerCase();
+                const productId = (port.productId || '').toLowerCase();
+                const serialNumber = (port.serialNumber || '').toLowerCase();
+                const path = port.path.toLowerCase();
+                
+                return (
+                    // 制造商匹配
+                    manufacturer.includes('stp') ||
+                    manufacturer.includes('23l') ||
+                    manufacturer.includes('height') ||
+                    manufacturer.includes('ultrasonic') ||
+                    manufacturer.includes('sensor') ||
+                    // 产品ID匹配
+                    productId.includes('stp') ||
+                    productId.includes('23l') ||
+                    productId.includes('height') ||
+                    productId.includes('ultrasonic') ||
+                    // 序列号匹配
+                    serialNumber.includes('stp') ||
+                    serialNumber.includes('23l') ||
+                    serialNumber.includes('height') ||
+                    // 路径匹配
+                    path.includes('stp') ||
+                    path.includes('23l') ||
+                    path.includes('height')
+                );
+            });
             
             // 保存可用设备信息，但不自动连接
             if (lidarPort) {
