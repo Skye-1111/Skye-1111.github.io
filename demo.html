@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>激光雷达树木检测系统 - 演示版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .demo-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .demo-section h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .status-card {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-item {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #4299e1;
+        }
+
+        .status-item h3 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .status-value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #38a169;
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #3182ce;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .data-display {
+            background: #1a202c;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #2d3748;
+        }
+
+        .log-time {
+            color: #68d391;
+        }
+
+        .log-info {
+            color: #63b3ed;
+        }
+
+        .log-success {
+            color: #68d391;
+        }
+
+        .log-warning {
+            color: #f6e05e;
+        }
+
+        .log-error {
+            color: #fc8181;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: #4299e1;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .feature-desc {
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: white;
+            opacity: 0.8;
+        }
+
+        .github-link {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .github-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .demo-controls {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌲 激光雷达树木检测系统</h1>
+            <p>基于 WebSocket 的实时数据采集与远程控制系统</p>
+        </div>
+
+        <div class="demo-section">
+            <h2>📊 系统状态</h2>
+            <div class="status-card">
+                <div class="status-item">
+                    <h3>连接状态</h3>
+                    <div class="status-value" id="connectionStatus">演示模式</div>
+                </div>
+                <div class="status-item">
+                    <h3>数据采集</h3>
+                    <div class="status-value" id="dataStatus">模拟数据</div>
+                </div>
+                <div class="status-item">
+                    <h3>设备状态</h3>
+                    <div class="status-value" id="deviceStatus">虚拟设备</div>
+                </div>
+                <div class="status-item">
+                    <h3>检测计数</h3>
+                    <div class="status-value" id="detectionCount">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>🎮 控制面板</h2>
+            <div class="demo-controls">
+                <button class="btn btn-primary" onclick="simulateConnect()">连接激光雷达</button>
+                <button class="btn btn-success" onclick="startDataCollection()">开始数据采集</button>
+                <button class="btn btn-warning" onclick="stopDataCollection()">停止采集</button>
+                <button class="btn btn-primary" onclick="clearLogs()">清空日志</button>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>📝 系统日志</h2>
+            <div class="data-display" id="logDisplay">
+                <div class="log-entry">
+                    <span class="log-time">[2025-10-17 19:40:00]</span>
+                    <span class="log-info">系统初始化完成</span>
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">[2025-10-17 19:40:01]</span>
+                    <span class="log-success">演示模式已启动</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h2>✨ 系统特性</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">🌐</div>
+                    <div class="feature-title">WebSocket 通信</div>
+                    <div class="feature-desc">实时双向通信，支持多客户端连接和数据同步</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📡</div>
+                    <div class="feature-title">远程控制</div>
+                    <div class="feature-desc">通过 Web 界面远程控制激光雷达设备，支持多种操作指令</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <div class="feature-title">实时数据</div>
+                    <div class="feature-desc">实时显示激光雷达扫描数据，支持数据可视化和分析</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔧</div>
+                    <div class="feature-title">设备管理</div>
+                    <div class="feature-desc">自动检测和管理串口设备，支持多种激光雷达型号</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <div class="feature-title">数据存储</div>
+                    <div class="feature-desc">自动保存采集数据，支持历史数据查询和导出</div>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🌲</div>
+                    <div class="feature-title">树木检测</div>
+                    <div class="feature-desc">专门针对森林环境优化的树木检测算法</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>🔗 完整项目地址：<a href="https://github.com/Skye-1111/laser-radar-system" class="github-link">GitHub Repository</a></p>
+            <p>📖 这是一个演示版本，完整功能需要运行本地服务器</p>
+        </div>
+    </div>
+
+    <script>
+        let detectionCount = 0;
+        let isCollecting = false;
+        let collectionInterval;
+
+        function addLog(message, type = 'info') {
+            const logDisplay = document.getElementById('logDisplay');
+            const now = new Date();
+            const timeStr = now.toISOString().replace('T', ' ').substring(0, 19);
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.innerHTML = `<span class="log-time">[${timeStr}]</span> <span class="log-${type}">${message}</span>`;
+            
+            logDisplay.appendChild(logEntry);
+            logDisplay.scrollTop = logDisplay.scrollHeight;
+        }
+
+        function simulateConnect() {
+            addLog('正在连接激光雷达设备...', 'info');
+            
+            setTimeout(() => {
+                document.getElementById('connectionStatus').textContent = '已连接';
+                document.getElementById('deviceStatus').textContent = 'STP-23L 激光雷达';
+                addLog('激光雷达连接成功', 'success');
+            }, 1500);
+        }
+
+        function startDataCollection() {
+            if (isCollecting) return;
+            
+            isCollecting = true;
+            document.getElementById('dataStatus').textContent = '采集中...';
+            addLog('开始数据采集', 'success');
+            
+            collectionInterval = setInterval(() => {
+                detectionCount++;
+                document.getElementById('detectionCount').textContent = detectionCount;
+                
+                // 模拟检测到树木
+                if (Math.random() < 0.3) {
+                    addLog(`检测到树木 - 距离: ${(Math.random() * 50 + 10).toFixed(1)}m, 角度: ${(Math.random() * 360).toFixed(1)}°`, 'success');
+                }
+                
+                // 模拟数据点
+                if (Math.random() < 0.8) {
+                    addLog(`数据点: 距离=${(Math.random() * 100).toFixed(1)}m, 强度=${Math.floor(Math.random() * 1000)}`, 'info');
+                }
+            }, 2000);
+        }
+
+        function stopDataCollection() {
+            if (!isCollecting) return;
+            
+            isCollecting = false;
+            clearInterval(collectionInterval);
+            document.getElementById('dataStatus').textContent = '已停止';
+            addLog('数据采集已停止', 'warning');
+        }
+
+        function clearLogs() {
+            document.getElementById('logDisplay').innerHTML = '';
+            addLog('日志已清空', 'info');
+        }
+
+        // 页面加载完成后的初始化
+        window.addEventListener('load', () => {
+            addLog('演示页面加载完成', 'success');
+            addLog('点击"连接激光雷达"开始体验', 'info');
+        });
+    </script>
+</body>
+</html>

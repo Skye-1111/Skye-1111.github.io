@@ -26,13 +26,27 @@ jobs:
       run: |
         # 复制必要的文件到部署目录
         mkdir -p dist
-        cp index.html dist/
+        cp demo.html dist/index.html
         cp -r images dist/ 2>/dev/null || true
         cp -r data dist/ 2>/dev/null || true
-        cp *.js dist/ 2>/dev/null || true
-        cp *.json dist/ 2>/dev/null || true
         cp *.md dist/ 2>/dev/null || true
         cp *.pdf dist/ 2>/dev/null || true
+        
+        # 创建 README 文件
+        echo "# 激光雷达树木检测系统" > dist/README.md
+        echo "" >> dist/README.md
+        echo "这是一个基于 WebSocket 的激光雷达树木检测系统演示。" >> dist/README.md
+        echo "" >> dist/README.md
+        echo "## 在线演示" >> dist/README.md
+        echo "点击 [这里](index.html) 查看在线演示版本。" >> dist/README.md
+        echo "" >> dist/README.md
+        echo "## 完整功能" >> dist/README.md
+        echo "要体验完整功能，请按照以下步骤运行本地服务器：" >> dist/README.md
+        echo "" >> dist/README.md
+        echo "1. 克隆仓库：\`git clone https://github.com/Skye-1111/laser-radar-system.git\`" >> dist/README.md
+        echo "2. 安装依赖：\`npm install\`" >> dist/README.md
+        echo "3. 启动服务器：\`node websocket-server.js\`" >> dist/README.md
+        echo "4. 打开浏览器访问：\`http://localhost:8080\`" >> dist/README.md
         
     - name: Deploy to GitHub Pages
       uses: peaceiris/actions-gh-pages@v3
